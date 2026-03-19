@@ -2,8 +2,10 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { StellarRegistryService } from './stellar-registry.service';
 import { StateSnapshot } from './models';
+import { computeDiff, DiffEntry, formatValue } from './diff.utils';
 
 type OverlayMode = 'closed' | 'picking' | 'viewing';
+type PanelView = 'state' | 'diff';
 
 @Component({
   selector: 'stellar-overlay',
@@ -23,7 +25,7 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       gap: 8px;
     }
 
-    /* ── Panel (left of the dial) ───────────────────────────── */
+    /* ── Panel ───────────────────────────────────────────────── */
     .panel {
       width: 480px;
       max-height: 600px;
@@ -43,6 +45,7 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .panel-title {
@@ -51,7 +54,29 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       color: #cba6f7;
     }
 
-    .back-btn {
+    .view-toggle {
+      display: flex;
+      border: 1px solid #45475a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .view-toggle button {
+      background: none;
+      border: none;
+      color: #6c7086;
+      cursor: pointer;
+      padding: 2px 10px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .view-toggle button.active {
+      background: #313244;
+      color: #cdd6f4;
+    }
+
+    .icon-btn {
       background: none;
       border: none;
       color: #a6adc8;
@@ -62,7 +87,7 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       font-size: 12px;
     }
 
-    .back-btn:hover {
+    .icon-btn:hover {
       background: #313244;
       color: #cdd6f4;
     }
@@ -73,11 +98,13 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       overflow: hidden;
     }
 
+    /* ── History list ────────────────────────────────────────── */
     .history-list {
       width: 150px;
       border-right: 1px solid #45475a;
       overflow-y: auto;
       padding: 4px;
+      flex-shrink: 0;
     }
 
     .history-item {
@@ -93,6 +120,7 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       color: #cdd6f4;
     }
 
+    /* ── State view ──────────────────────────────────────────── */
     .state-view {
       flex: 1;
       overflow: auto;
@@ -105,7 +133,62 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       word-break: break-all;
     }
 
-    /* ── Speed dial column (right, anchored to bottom) ───────── */
+    /* ── Diff view ───────────────────────────────────────────── */
+    .diff-view {
+      flex: 1;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .diff-empty {
+      color: #6c7086;
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    .diff-no-changes {
+      color: #a6e3a1;
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .diff-table td {
+      padding: 3px 6px;
+      vertical-align: top;
+    }
+
+    .diff-path {
+      color: #89b4fa;
+      white-space: nowrap;
+      padding-right: 12px;
+    }
+
+    .diff-kind {
+      white-space: nowrap;
+      padding-right: 8px;
+      font-size: 11px;
+    }
+
+    .diff-values {
+      color: #cdd6f4;
+      word-break: break-all;
+    }
+
+    .kind-changed { color: #f9e2af; }
+    .kind-added   { color: #a6e3a1; }
+    .kind-removed { color: #f38ba8; }
+
+    .old-val { color: #f38ba8; }
+    .new-val { color: #a6e3a1; }
+    .arrow   { color: #6c7086; padding: 0 4px; }
+
+    /* ── Speed dial ──────────────────────────────────────────── */
     .dial {
       display: flex;
       flex-direction: column;
@@ -124,9 +207,7 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       transition: background 0.1s;
     }
 
-    .store-chip:hover {
-      background: #313244;
-    }
+    .store-chip:hover { background: #313244; }
 
     .no-stores {
       color: #6c7086;
@@ -148,32 +229,76 @@ type OverlayMode = 'closed' | 'picking' | 'viewing';
       white-space: nowrap;
     }
 
-    .fab:hover {
-      background: #d9b8ff;
-    }
+    .fab:hover { background: #d9b8ff; }
   `],
   template: `
     @if (mode() === 'viewing') {
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">{{ selectedStore() }}</span>
-          <button class="back-btn" (click)="goToPicker()">← stores</button>
-          <button class="back-btn" (click)="close()">✕</button>
+
+          <div class="view-toggle">
+            <button [class.active]="panelView() === 'state'" (click)="panelView.set('state')">State</button>
+            <button [class.active]="panelView() === 'diff'" (click)="panelView.set('diff')">Diff</button>
+          </div>
+
+          <button class="icon-btn" (click)="goToPicker()">← stores</button>
+          <button class="icon-btn" (click)="close()">✕</button>
         </div>
+
         <div class="panel-body">
           <div class="history-list">
             @for (snap of selectedHistory(); track snap.timestamp; let i = $index) {
               <div
                 class="history-item"
-                [class.active]="selectedIndex() === i"
+                [class.active]="activeIndex() === i"
                 (click)="selectSnapshot(i)">
                 #{{ i + 1 }} &nbsp;{{ snap.timestamp | date:'HH:mm:ss' }}
               </div>
             }
           </div>
-          <div class="state-view">
-            <pre>{{ selectedState() }}</pre>
-          </div>
+
+          @if (panelView() === 'state') {
+            <div class="state-view">
+              <pre>{{ selectedState() }}</pre>
+            </div>
+          } @else {
+            <div class="diff-view">
+              @if (diffEntries() === null) {
+                <div class="diff-empty">Initial state — no previous snapshot to compare.</div>
+              } @else if (diffEntries()!.length === 0) {
+                <div class="diff-no-changes">✓ No changes from previous snapshot.</div>
+              } @else {
+                <table class="diff-table">
+                  @for (entry of diffEntries()!; track entry.path) {
+                    <tr>
+                      <td class="diff-path">{{ entry.path }}</td>
+                      <td class="diff-kind">
+                        @if (entry.kind === 'changed') {
+                          <span class="kind-changed">~</span>
+                        } @else if (entry.kind === 'added') {
+                          <span class="kind-added">+</span>
+                        } @else {
+                          <span class="kind-removed">−</span>
+                        }
+                      </td>
+                      <td class="diff-values">
+                        @if (entry.kind === 'changed') {
+                          <span class="old-val">{{ fmt(entry.oldValue) }}</span>
+                          <span class="arrow">→</span>
+                          <span class="new-val">{{ fmt(entry.newValue) }}</span>
+                        } @else if (entry.kind === 'added') {
+                          <span class="new-val">{{ fmt(entry.newValue) }}</span>
+                        } @else {
+                          <span class="old-val">{{ fmt(entry.oldValue) }}</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </table>
+              }
+            </div>
+          }
         </div>
       </div>
     }
@@ -198,8 +323,16 @@ export class StellarOverlayComponent {
 
   readonly stores = this.registry.stores;
   readonly mode = signal<OverlayMode>('closed');
+  readonly panelView = signal<PanelView>('state');
   readonly selectedStore = signal<string | null>(null);
   readonly selectedIndex = signal<number>(-1);
+
+  // Resolves -1 (latest) to the actual last index
+  readonly activeIndex = computed(() => {
+    const idx = this.selectedIndex();
+    const len = this.selectedHistory().length;
+    return idx === -1 ? len - 1 : idx;
+  });
 
   readonly selectedHistory = computed<StateSnapshot[]>(() => {
     const name = this.selectedStore();
@@ -213,6 +346,17 @@ export class StellarOverlayComponent {
     const snap = idx === -1 ? history[history.length - 1] : history[idx];
     return snap ? JSON.stringify(snap.state, null, 2) : '';
   });
+
+  readonly diffEntries = computed<DiffEntry[] | null>(() => {
+    const history = this.selectedHistory();
+    const idx = this.activeIndex();
+    if (idx <= 0) return null;
+    const prev = history[idx - 1].state;
+    const curr = history[idx].state;
+    return computeDiff(prev, curr);
+  });
+
+  readonly fmt = formatValue;
 
   onFabClick(): void {
     if (this.mode() === 'closed' || this.mode() === 'viewing') {
