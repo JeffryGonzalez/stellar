@@ -1,5 +1,35 @@
 # Angular Developer Tools
 
+---
+
+## 📋 Tomorrow's Agenda
+
+### 1. Sanitization — likely scenarios audit
+Go through a list of real-world "things developers actually put in state that they shouldn't expose" and verify the current `sanitation.ts` implementation covers them. Known candidates: passwords, tokens/API keys, SSNs, credit card numbers, email addresses, phone numbers, dates of birth, street addresses, internal IDs. Check what's covered by existing operators (`omitted`, `lastFour`, `mask`) and what's missing.
+
+### 2. Parameterized operators — design decision
+The current `sanitizationHandlers` object handles parameter-free operators elegantly (add a key, type propagates automatically via `satisfies`). But some operators need runtime arguments: `keepFirst(n)`, `truncate(n)`, `replace(fn)`. Two options to decide between:
+- **Curried functions** that return a `(v: string) => string` handler, used directly in the config alongside string literals — requires `SanitizationConfig<T>` to also accept function values as valid rules
+- **Pre-baked variants** in `sanitizationHandlers` (`keepFirst8`, `keepFirst16`, etc.) — ugly but keeps the type simple
+
+Leaning toward curried functions — discuss and decide.
+
+### 3. Array handling convention — tuple vs. explicit combinator
+The `[config]` single-element tuple convention for arrays is clever but not immediately legible to someone reading it cold. An explicit `arrayOf({ email: 'omitted' })` combinator might be more discoverable. Decide before this becomes a public API.
+
+### 4. Plugin architecture — where's the line?
+The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on in principle. Still need to decide: which plugins, if any, are so universally needed that leaving them out feels like a footgun? Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellarDevtools` itself.
+
+### 5. `@hypertheory/sanitize` as a standalone package
+Confirm that the sanitization library lives independently of the devtools — usable in event sourcing pipelines, logging, etc. `withStateSanitization()` in stellardevtools is then just a thin adapter. Decide on package name and whether it's a separate repo or a monorepo sibling.
+
+### 6. Reconcile `sanitation.ts` with `sanitizer.md`
+The implementation uses string literals (`'omitted'`, `'lastFour'`) while the design doc describes function-call style operators (`omit()`, `redact()`). The string literal approach is probably right for the finite set — confirm this, update the design doc to match the implementation direction, and note where function-call style would still be needed (parameterized operators only).
+
+---
+
+
+
 I want to develop a set of Angular developer tools more like the Vue or Tanstack Query developer tools than the team-provided browser devtools extension.
 
 Below are the potential features I'd like.

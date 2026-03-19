@@ -1,6 +1,7 @@
 const sanitizationHandlers = {
     omitted: null,
     lastFour: (v: string) => v.slice(-4),
+    mask: (v: string) => '*'.repeat(v.length),
 } satisfies Record<string, ((v: string) => string) | null>;
 
 type SanitizationRule = keyof typeof sanitizationHandlers;
