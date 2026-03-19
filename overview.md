@@ -14,6 +14,21 @@ I would like to investigate whether a "Devtools" experience that runs in the bro
 
 ## Backlog / Parking Lot
 
+### Plugin architecture for `provideStellarDevtools`
+Instead of a monolithic provider, adopt a plugin pattern mirroring Angular's own `provideRouter(withHashLocation(), withViewTransitions())`:
+
+```ts
+provideStellarDevtools(
+  withNgrxSignalStoreTools(),
+  withHttpTrafficMonitoring(),
+  withStateSanitization(pipe(omit('password'), redact('ssn', { keep: 'last4' }))),
+)
+```
+
+Core becomes just the overlay + registry — tiny and tree-shakeable. Each `withXXX()` function carries its own config, which is the main argument for *not* defaulting anything in: including a plugin by default would force opinionated defaults or push config onto `provideStellarDevtools` itself. Keeping the core empty and everything explicit avoids that. Needs design discussion — particularly where the line sits between "everyone will want this" and "genuinely opt-in".
+
+---
+
 ### State sanitization ⚠️ (should land before any export/share features)
 Before state is displayed in the overlay, exported, or transmitted anywhere, there should be a way to elide sensitive values — PII, API keys, tokens, passwords, etc.
 
