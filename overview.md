@@ -16,6 +16,20 @@
 ### Plugin architecture — where's the line?
 The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on in principle. Still need to decide: which plugins, if any, are so universally needed that leaving them out feels like a footgun? Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellarDevtools` itself.
 
+### Snapshot export — "Copy for AI" + filesystem write
+
+Two delivery mechanisms for getting a snapshot to an AI assistant, in shipping order:
+
+**1. Clipboard ("Copy for AI" button)** — overlay button that formats the current snapshot(s) as the AI-readable markdown format from `docs/ai-accessibility.md` (Level 1) and copies to clipboard. Developer pastes into chat. Per-store buttons + an "all stores" button in the overlay header. Sanitization runs before copy — this is non-negotiable.
+
+**2. Filesystem write** — a companion button (or the same button with a second action) that writes the snapshot to `.stellar/snapshot.json` at the project root. In a Claude Code session, Claude can read this file directly — developer says "I saved a snapshot" and Claude reads it without any copy-paste. This is the practical stepping stone to MCP: most of the benefit, almost none of the infrastructure.
+
+**3. MCP server** — the right long-term answer but worth pondering before building. The filesystem approach will clarify exactly what the MCP server needs to expose. Build clipboard + filesystem first, let that experience inform the MCP architecture.
+
+Format for both: the self-describing markdown snapshot from `docs/ai-accessibility.md`. JSON inside the markdown fences for programmatic use. Sanitized before it leaves the devtools boundary.
+
+---
+
 ### Snapshot format — complete the AI Accessibility slots
 Current `StateSnapshot` only has `storeName`, `timestamp`, `state`, `route`. Missing:
 - `inferredShape: ShapeMap` — should ship in v1 (zero cost to compute, high AI value)
@@ -40,6 +54,27 @@ Both of these approaches assume you are going to use the aged Redux Devtools ext
 I would like to investigate whether a "Devtools" experience that runs in the browser (like the Tanstack Query Devtool) could be a sink and catch the same data/events that the browser devtools does currently?
 
 ## Backlog / Parking Lot
+
+### Causal event stream — `withPlaywrightObserver()`
+State snapshots tell you *where* the app is. The causal event stream tells you *how it got there* — the sequence of user interactions, network requests, and state transitions that led to the current moment. This is the primary friction in AI-assisted debugging: the developer manually relays the sequence; the AI reasons about a static artifact without the context that produced it.
+
+The mechanism: lightweight monkey-patching of `fetch`, document-level capture listeners for user interactions, and store method wrapping (already partially in place via `withStellarDevtools`). Produces a structured event log:
+
+```
+[click]  button "Load User"
+[fetch]  GET /api/user/123 → 200 (142ms)
+[state]  UserStore: { loading: true } → { loading: false, userId: "123", role: "admin" }
+[fetch]  PUT /api/user/123 → 403 (34ms)
+[state]  UserStore → { error: "Forbidden" }
+```
+
+Delivered via Playwright's `page.addInitScript()` in test environments — zero production footprint, no external connections, developer-initiated. Events stream through Playwright's console bridge to a local log. Feeds the `trigger` field in state snapshots automatically.
+
+Companion feature: **conditional watchpoints** — `window.__stellarDevtools.watch('UserStore', state => state.errorCount > 3, { mode: 'record' })` — state-level conditional breakpoints that can trigger snapshot capture, a `debugger` pause, or a Playwright screenshot automatically.
+
+See `docs/causal-event-stream.md` for full design notes.
+
+---
 
 ### User-defined semantic aliases in `@hypertheory/sanitize`
 The built-in handler map ships with a vocabulary of common sensitive data types (`creditCard`,
