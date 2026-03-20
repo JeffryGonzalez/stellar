@@ -169,6 +169,16 @@ const MAX_HEIGHT = 900;
       padding: 1px 6px 3px;
     }
 
+    .stellar-trigger-badge {
+      display: block;
+      font-size: 10px;
+      color: #89b4fa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 6px 2px;
+    }
+
     /* ── State view ──────────────────────────────────────────── */
     .stellar-state-view {
       flex: 1;
@@ -310,6 +320,9 @@ const MAX_HEIGHT = 900;
                 [class.stellar-active]="activeIndex() === i"
                 (click)="selectSnapshot(i)">
                 #{{ i + 1 }} &nbsp;{{ snap.timestamp | date:'HH:mm:ss' }}
+                @if (snap.trigger) {
+                  <span class="stellar-trigger-badge">{{ snap.trigger }}</span>
+                }
               </div>
             }
           </div>

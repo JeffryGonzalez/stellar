@@ -151,6 +151,41 @@ The same sanitization principle that governs state snapshots applies here: **no 
 
 ---
 
+## The `data-stellar-label` Convention
+
+When an element's text content isn't descriptive enough — icon buttons, symbol buttons (`−`, `+`),
+elements whose visible label doesn't map cleanly to an action — developers can annotate with
+`data-stellar-label` to provide an explicit hint to the click correlator:
+
+```html
+<button data-stellar-label="decrement" (click)="counter.decrement()">−</button>
+<button data-stellar-label="increment" (click)="counter.increment()">+</button>
+```
+
+The correlator's label priority order:
+
+1. `data-stellar-label` — explicit developer intent, wins always
+2. `aria-label` — already semantic, free, no extra work if present
+3. `textContent.trim()` — what the user sees (works well for most buttons)
+4. `tagName.toLowerCase()` — fallback
+
+**Why this matters for AI correlation:** a history entry showing `click: "increment"` is
+directly correlatable to the `increment()` method in the store source — no method wrapping
+required. The label is the bridge between the UI event and the code.
+
+**Follows established conventions.** Teams already using `data-testid` for Playwright/Cypress
+will find this immediately familiar. The attribute is inert to the application, survives
+minification, and works in any framework. It is a seam for tooling, not application logic.
+
+**Future extension point.** `data-stellar-label` is the first in a potential family of
+`data-stellar-*` attributes. Candidates for later:
+- `data-stellar-ignore` — exclude an element from click capture (UI chrome, devtools-adjacent elements)
+- `data-stellar-action` — explicitly name the semantic action rather than the UI label
+
+For now: `data-stellar-label` only. Keep it simple until there's a concrete need.
+
+---
+
 ## Relationship to Stellar's Existing Architecture
 
 This is a natural extension of what `withStellarDevtools` already does:

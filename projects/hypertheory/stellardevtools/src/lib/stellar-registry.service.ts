@@ -11,10 +11,23 @@ export class StellarRegistryService {
   private _stores = signal<StoreEntry[]>([]);
   readonly stores = this._stores.asReadonly();
 
+  private lastClick: { label: string; time: number } | null = null;
+
   constructor() {
     this.core.subscribe(() => {
       this._stores.set(this.core.getAllStores());
     });
+
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('stellar-overlay')) return;
+      const label =
+        target.getAttribute('data-stellar-label') ||
+        target.getAttribute('aria-label') ||
+        target.textContent?.trim().slice(0, 50) ||
+        target.tagName.toLowerCase();
+      this.lastClick = { label: label || 'unknown', time: performance.now() };
+    }, { capture: true });
   }
 
   register(name: string, options: RegisterOptions = {}): void {
@@ -22,7 +35,16 @@ export class StellarRegistryService {
   }
 
   recordState(name: string, state: Record<string, unknown>): void {
-    this.core.recordState(name, state, { route: this.router?.url ?? null });
+    this.core.recordState(name, state, {
+      route: this.router?.url ?? null,
+      trigger: this.recentClickTrigger(),
+    });
+  }
+
+  private recentClickTrigger(): string | undefined {
+    if (!this.lastClick) return undefined;
+    if (performance.now() - this.lastClick.time > 150) return undefined;
+    return `click: "${this.lastClick.label}"`;
   }
 
   unregister(name: string): void {
