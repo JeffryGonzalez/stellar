@@ -24,7 +24,11 @@
       "Bash(node -e \":*)",
       "Bash(node -e \"const d=require\\(''''/dev/stdin''''\\); const keys=[...Object.keys\\(d.dependencies||{}\\), ...Object.keys\\(d.devDependencies||{}\\)].filter\\(k=>k.includes\\(''''tailwind''''\\)||k.includes\\(''''daisy''''\\)||k.includes\\(''''postcss''''\\)\\); keys.forEach\\(k=>console.log\\(k, \\(d.dependencies||{}\\)[k]||\\(d.devDependencies||{}\\)[k]\\)\\)\")",
       "Bash(python3 -c \":*)",
-      "Bash(grep -r \"tailwind\\\\|postcss\" /Users/jeffrygonzalez/work/stellar/node_modules/@angular/build/src/tools/ --include=*.js -l)"
+      "Bash(grep -r \"tailwind\\\\|postcss\" /Users/jeffrygonzalez/work/stellar/node_modules/@angular/build/src/tools/ --include=*.js -l)",
+      "WebFetch(domain:ngrx.io)",
+      "WebSearch",
+      "Bash(grep -r \"withFeature\\\\|SignalStoreFeature\\\\|EmptyFeature\" /Users/jeffrygonzalez/work/stellar/node_modules/@ngrx/signals/src/ --include=*.d.ts -l)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

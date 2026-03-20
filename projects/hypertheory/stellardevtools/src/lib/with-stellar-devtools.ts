@@ -2,7 +2,7 @@ import { inject, effect } from '@angular/core';
 import { signalStoreFeature, withHooks, getState } from '@ngrx/signals';
 import { StellarRegistryService } from './stellar-registry.service';
 import { RegisterOptions } from './models';
-import { SanitizationConfig, sanitized as applySanitized } from '@hypertheory/sanitize';
+import { SanitizationConfig, sanitized as applySanitized, autoRedactConfig } from '@hypertheory/sanitize';
 
 interface StellarDevtoolsOptions extends RegisterOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,8 +18,9 @@ export function withStellarDevtools(name: string, options: StellarDevtoolsOption
 
         effect(() => {
           const raw = getState(store) as Record<string, unknown>;
-          const state = options.sanitize
-            ? applySanitized(raw, options.sanitize)
+          const merged = { ...autoRedactConfig(raw), ...options.sanitize };
+          const state = Object.keys(merged).length > 0
+            ? applySanitized(raw, merged as any)
             : raw;
           registry.recordState(name, state);
         });

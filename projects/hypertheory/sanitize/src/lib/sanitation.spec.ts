@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitized, arrayOf, keepFirst, keepLast, truncate, replace } from './sanitation';
+import { sanitized, autoRedactConfig, arrayOf, keepFirst, keepLast, truncate, replace } from './sanitation';
 
 // ── Primitive operators ───────────────────────────────────────────────────────
 
@@ -190,5 +190,63 @@ describe('nested objects', () => {
       email: 'je***@example.com',
       notes: 'a very lon…',
     });
+  });
+});
+
+// ── autoRedactConfig() ────────────────────────────────────────────────────────
+
+describe('autoRedactConfig', () => {
+  it('returns an empty config for a state with no sensitive field names', () => {
+    expect(autoRedactConfig({ title: 'hello', count: 42, active: true })).toEqual({});
+  });
+
+  it('generates a rule for each recognised sensitive field name', () => {
+    const config = autoRedactConfig({
+      password:     'hunter2',
+      apiKey:       'sk-abc',
+      token:        'Bearer xyz',
+      secret:       'topsecret',
+      ssn:          '555-55-5555',
+      creditCard:   '4111111111114567',
+      debitCard:    '4111111111114567',
+      phoneNumber:  '5551234567',
+      email:        'user@example.com',
+      emailAddress: 'user@example.com',
+    });
+
+    expect(config).toEqual({
+      password:     'password',
+      apiKey:       'apiKey',
+      token:        'token',
+      secret:       'secret',
+      ssn:          'ssn',
+      creditCard:   'creditCard',
+      debitCard:    'debitCard',
+      phoneNumber:  'phoneNumber',
+      email:        'email',
+      emailAddress: 'emailAddress',
+    });
+  });
+
+  it('ignores fields not in the sensitive set', () => {
+    const config = autoRedactConfig({ password: 'x', username: 'jeff', role: 'admin' });
+    expect(Object.keys(config)).toEqual(['password']);
+  });
+
+  it('does not match on partial or differently-cased names', () => {
+    const config = autoRedactConfig({ Password: 'x', API_KEY: 'y', authToken: 'z' });
+    expect(config).toEqual({});
+  });
+
+  it('when merged with an explicit config, explicit rules take precedence', () => {
+    const state = { password: 'hunter2', email: 'jeff@example.com', notes: 'public info' };
+    const explicitConfig = { password: 'omitted' as const }; // override auto-redact
+
+    const merged = { ...autoRedactConfig(state), ...explicitConfig };
+    const result = sanitized(state, merged);
+
+    expect('password' in result).toBe(false);           // explicit 'omitted' wins
+    expect(result.email).toMatch(/^\w{2}\*{3}@/);       // auto-redact applied
+    expect((result as any).notes).toBe('public info');  // untouched
   });
 });

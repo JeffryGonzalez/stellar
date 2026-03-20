@@ -152,6 +152,41 @@ export function sanitizeConfig<T>(config: SanitizationConfig<T>): SanitizationCo
   return config;
 }
 
+// ── autoRedactConfig() ───────────────────────────────────────────────────────
+//
+// Convention-based zero-config layer. Checks field names against the semantic
+// alias blocklist and returns a SanitizationConfig for any that match.
+//
+// Designed to be merged with an explicit SanitizationConfig — explicit rules
+// always take precedence:
+//   const merged = { ...autoRedactConfig(state), ...explicitConfig };
+//
+// Limitations (by design for v1):
+//   - Top-level field names only. Nested objects require explicit config.
+//   - Exact name match only — 'Password', 'API_KEY', 'authToken' won't match.
+//   - The set of sensitive field names is the semantic alias vocabulary.
+//     Domain-specific names (e.g. 'policyNumber') require explicit config or
+//     a custom sanitizer via createSanitizer() (future).
+
+const SENSITIVE_FIELD_NAMES = new Set<SanitizationRule>([
+  'creditCard', 'debitCard', 'phoneNumber', 'ssn',
+  'password', 'apiKey', 'token', 'secret', 'emailAddress',
+  // primitive operators that are also common field names:
+  'email',
+]);
+
+export function autoRedactConfig(
+  data: Record<string, unknown>,
+): Record<string, SanitizationRule> {
+  const config: Record<string, SanitizationRule> = {};
+  for (const key of Object.keys(data)) {
+    if (SENSITIVE_FIELD_NAMES.has(key as SanitizationRule)) {
+      config[key] = key as SanitizationRule;
+    }
+  }
+  return config;
+}
+
 // ── sanitized() ───────────────────────────────────────────────────────────────
 
 export function sanitized<T, C extends SanitizationConfig<T>>(data: T, config: C): Sanitized<T, C> {
