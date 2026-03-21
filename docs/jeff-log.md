@@ -27,12 +27,7 @@ Don't write notes for my benefit about things that are self-evident from the cod
 
 ## Copilot produced summary 
  
-ust tell me which direction you want to go.
 
-Yes - thanks. I think a mid-level detailed design guide might be useful. I'm not worried about the pipeline template yet, but the design guide, checklist, and comparison would be helpful. Thanks.
-Absolutely — let’s build you something genuinely useful: a mid‑level design guide, a practical checklist, and a comparison of approaches for making online documentation legible, ingestible, and reliably usable by LLMs and coding agents.
-
-None of this depends on your open tabs, so I won’t pull in page content; I’ll just give you a clean, structured guide you can use immediately.
 
 🧭 Design Guide: Making Documentation Legible for LLMs
 This is the “mid‑level” version: not hand‑wavey, not overly implementation‑specific.

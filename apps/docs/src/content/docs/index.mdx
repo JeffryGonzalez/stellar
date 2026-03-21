@@ -1,40 +1,32 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: Stellar Devtools
+description: In-browser developer tools for Angular applications, built with AI coding assistants as first-class users alongside human developers.
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
-  image:
-    file: ../../assets/houston.webp
+  tagline: Developer tools that work for humans and AI coding assistants equally.
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: Get Started
+      link: /guides/getting-started/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
-      icon: external
+    - text: Why Stellar?
+      link: /overview/
+      icon: open-book
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
-
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
-	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
-	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
-	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
-	</Card>
+  <Card title="NgRx Signal Store Devtools" icon="laptop">
+    Inspect, diff, and export store state from inside your running app — no browser extension required.
+  </Card>
+  <Card title="State Sanitization" icon="shield">
+    Redact sensitive values before they reach the overlay, logs, or an AI assistant. Automatic for common fields; fully configurable for everything else.
+  </Card>
+  <Card title="AI-First Design" icon="star">
+    State snapshots, history, and diffs are structured for AI consumption, not just human reading. The `window.__stellarDevtools` API is a stable contract.
+  </Card>
+  <Card title="In-Browser Overlay" icon="puzzle">
+    Runs inside your app, not as a browser extension. Mount it with a single component tag; remove it without a trace.
+  </Card>
 </CardGrid>
