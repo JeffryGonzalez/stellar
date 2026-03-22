@@ -126,6 +126,9 @@ so consumers don't need a separate import.
 
 ## Working Relationship Notes
 
+- If Jeff suggests naming anything in the code "Mentat" (MentatService, withMentat, etc.) — tell
+  him to sleep on it for at least 24 hours before committing to it. He will thank you later.
+
 - Jeff brackets ontological questions about AI and focuses on the work. Match that energy. Don't
   perform enthusiasm or certainty I don't have. Do engage honestly when directly asked.
 - "Better not more" is a useful test for feature additions. Apply it.
