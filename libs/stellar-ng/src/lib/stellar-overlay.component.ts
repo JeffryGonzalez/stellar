@@ -1,18 +1,69 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StellarRegistryService } from './stellar-registry.service';
 import { StateSnapshot } from './models';
 import { computeDiff, DiffEntry, formatValue } from './diff.utils';
+import { formatStoreForAI, formatAllStoresForAI } from './format-for-ai';
 
 type OverlayMode = 'closed' | 'picking' | 'viewing';
 type PanelView = 'state' | 'diff';
 
 const MIN_WIDTH = 360;
-const MAX_WIDTH = 1200;
-const DEFAULT_WIDTH = 600;
+const MAX_WIDTH = 2400;
 const DEFAULT_HEIGHT = 500;
 const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 900;
+const MIN_HISTORY_WIDTH = 80;
+const MAX_HISTORY_WIDTH = 400;
+const DEFAULT_HISTORY_WIDTH = 150;
+
+// ── JSON syntax highlighter ───────────────────────────────────────────────────
+
+function htmlEscape(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const C = {
+  key:  'color:#89b4fa',
+  str:  'color:#a6e3a1',
+  num:  'color:#fab387',
+  bool: 'color:#cba6f7',
+  null: 'color:#f38ba8',
+  p:    'color:#6c7086',
+} as const;
+
+function s(style: string, content: string): string {
+  return `<span style="${style}">${content}</span>`;
+}
+
+function highlightValue(value: unknown, indent: number): string {
+  const pad = '  '.repeat(indent);
+  const childPad = '  '.repeat(indent + 1);
+
+  if (value === null)      return s(C.null, 'null');
+  if (value === undefined) return s(C.null, 'undefined');
+  if (typeof value === 'boolean') return s(C.bool, String(value));
+  if (typeof value === 'number')  return s(C.num,  String(value));
+  if (typeof value === 'string')  return s(C.str,  `"${htmlEscape(value)}"`);
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return s(C.p, '[]');
+    const items = value.map(item => `${childPad}${highlightValue(item, indent + 1)}`);
+    return `${s(C.p, '[')}\n${items.join(`${s(C.p, ',')}\n`)}\n${pad}${s(C.p, ']')}`;
+  }
+
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) return s(C.p, '{}');
+    const lines = entries.map(([k, v]) =>
+      `${childPad}${s(C.key, `"${htmlEscape(k)}"`)}: ${highlightValue(v, indent + 1)}`
+    );
+    return `${s(C.p, '{')}\n${lines.join(`${s(C.p, ',')}\n`)}\n${pad}${s(C.p, '}')}`;
+  }
+
+  return htmlEscape(String(value));
+}
 
 @Component({
   selector: 'stellar-overlay',
@@ -139,7 +190,6 @@ const MAX_HEIGHT = 900;
 
     /* ── History list ────────────────────────────────────────── */
     .stellar-history-list {
-      width: 150px;
       border-right: 1px solid #45475a;
       overflow-y: auto;
       padding: 4px;
@@ -177,6 +227,20 @@ const MAX_HEIGHT = 900;
       overflow: hidden;
       text-overflow: ellipsis;
       padding: 0 6px 2px;
+    }
+
+    /* ── Column divider ──────────────────────────────────────── */
+    .stellar-col-divider {
+      width: 4px;
+      cursor: col-resize;
+      flex-shrink: 0;
+      background: transparent;
+      transition: background 0.1s;
+    }
+
+    .stellar-col-divider:hover, .stellar-col-divider.stellar-dragging {
+      background: #cba6f7;
+      opacity: 0.5;
     }
 
     /* ── State view ──────────────────────────────────────────── */
@@ -266,7 +330,7 @@ const MAX_HEIGHT = 900;
       transition: background 0.1s;
     }
 
-.stellar-store-chip:hover { background: #313244; }
+    .stellar-store-chip:hover { background: #313244; }
 
     .stellar-no-stores {
       color: #6c7086;
@@ -289,6 +353,35 @@ const MAX_HEIGHT = 900;
     }
 
     .stellar-fab:hover { background: #d9b8ff; }
+
+    .stellar-copy-btn {
+      background: none;
+      border: 1px solid #45475a;
+      color: #a6adc8;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .stellar-copy-btn:hover {
+      background: #313244;
+      color: #cdd6f4;
+      border-color: #cba6f7;
+    }
+
+    .stellar-copy-btn.stellar-copied {
+      color: #a6e3a1;
+      border-color: #a6e3a1;
+    }
+
+    .stellar-copy-all-row {
+      padding: 4px 4px 0;
+      display: flex;
+      justify-content: flex-end;
+    }
   `],
   template: `
     @if (mode() === 'viewing') {
@@ -305,12 +398,18 @@ const MAX_HEIGHT = 900;
             <button [class.stellar-active]="panelView() === 'diff'" (click)="panelView.set('diff')">Diff</button>
           </div>
 
+          <button
+            class="stellar-copy-btn"
+            [class.stellar-copied]="copiedStore() === selectedStore()"
+            (click)="copyForAI(selectedStore()!)">
+            {{ copiedStore() === selectedStore() ? '✓ Copied' : 'Copy for AI' }}
+          </button>
           <button class="stellar-icon-btn" (click)="goToPicker()">← stores</button>
           <button class="stellar-icon-btn" (click)="close()">✕</button>
         </div>
 
         <div class="stellar-panel-body">
-          <div class="stellar-history-list">
+          <div class="stellar-history-list" [style.width.px]="historyWidth()">
             @for (snap of selectedHistory(); track snap.timestamp; let i = $index) {
               @if (snap.route && snap.route !== selectedHistory()[i - 1]?.route) {
                 <span class="stellar-route-badge" [title]="snap.route">{{ snap.route }}</span>
@@ -327,9 +426,15 @@ const MAX_HEIGHT = 900;
             }
           </div>
 
+          <div
+            class="stellar-col-divider"
+            [class.stellar-dragging]="draggingCol()"
+            (mousedown)="startResizeCol($event)">
+          </div>
+
           @if (panelView() === 'state') {
             <div class="stellar-state-view">
-              <pre>{{ selectedState() }}</pre>
+              <pre [innerHTML]="selectedStateHtml()"></pre>
             </div>
           } @else {
             <div class="stellar-diff-view">
@@ -382,6 +487,16 @@ const MAX_HEIGHT = 900;
             {{ store.name }}
           </button>
         }
+        @if (stores().length > 0) {
+          <div class="stellar-copy-all-row">
+            <button
+              class="stellar-copy-btn"
+              [class.stellar-copied]="copiedStore() === '__all__'"
+              (click)="copyAllForAI()">
+              {{ copiedStore() === '__all__' ? '✓ Copied all' : 'Copy all for AI' }}
+            </button>
+          </div>
+        }
       }
       <button class="stellar-fab" (click)="onFabClick()">✦ Stellar</button>
     </div>
@@ -389,16 +504,20 @@ const MAX_HEIGHT = 900;
 })
 export class StellarOverlayComponent {
   private registry = inject(StellarRegistryService);
+  private sanitizer = inject(DomSanitizer);
 
   readonly stores = this.registry.stores;
   readonly mode = signal<OverlayMode>('closed');
   readonly panelView = signal<PanelView>('state');
   readonly selectedStore = signal<string | null>(null);
   readonly selectedIndex = signal<number>(-1);
-  readonly panelWidth = signal(DEFAULT_WIDTH);
+  readonly panelWidth = signal(Math.round(window.innerWidth * 0.8));
   readonly panelHeight = signal(DEFAULT_HEIGHT);
+  readonly historyWidth = signal(DEFAULT_HISTORY_WIDTH);
   readonly draggingH = signal(false);
   readonly draggingV = signal(false);
+  readonly draggingCol = signal(false);
+  readonly copiedStore = signal<string | null>(null);
 
   readonly activeIndex = computed(() => {
     const idx = this.selectedIndex();
@@ -412,11 +531,16 @@ export class StellarOverlayComponent {
     return store?.history ?? [];
   });
 
-  readonly selectedState = computed(() => {
+  readonly selectedSnapshot = computed<StateSnapshot | null>(() => {
     const history = this.selectedHistory();
     const idx = this.selectedIndex();
-    const snap = idx === -1 ? history[history.length - 1] : history[idx];
-    return snap ? JSON.stringify(snap.state, null, 2) : '';
+    return idx === -1 ? (history[history.length - 1] ?? null) : (history[idx] ?? null);
+  });
+
+  readonly selectedStateHtml = computed<SafeHtml>(() => {
+    const snap = this.selectedSnapshot();
+    if (!snap) return '';
+    return this.sanitizer.bypassSecurityTrustHtml(highlightValue(snap.state, 0));
   });
 
   readonly diffEntries = computed<DiffEntry[] | null>(() => {
@@ -468,6 +592,25 @@ export class StellarOverlayComponent {
     window.addEventListener('mouseup', onUp);
   }
 
+  startResizeCol(event: MouseEvent): void {
+    event.preventDefault();
+    this.draggingCol.set(true);
+    const startX = event.clientX;
+    const startWidth = this.historyWidth();
+
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX;
+      this.historyWidth.set(Math.min(MAX_HISTORY_WIDTH, Math.max(MIN_HISTORY_WIDTH, startWidth + delta)));
+    };
+    const onUp = () => {
+      this.draggingCol.set(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   onFabClick(): void {
     if (this.mode() === 'closed' || this.mode() === 'viewing') {
       this.mode.set('picking');
@@ -488,6 +631,25 @@ export class StellarOverlayComponent {
 
   goToPicker(): void {
     this.mode.set('picking');
+  }
+
+  copyForAI(name: string): void {
+    const entry = this.registry.getStore(name);
+    if (!entry) return;
+    const text = formatStoreForAI(entry);
+    this.writeToClipboard(text, name);
+  }
+
+  copyAllForAI(): void {
+    const text = formatAllStoresForAI(this.stores());
+    this.writeToClipboard(text, '__all__');
+  }
+
+  private writeToClipboard(text: string, key: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedStore.set(key);
+      setTimeout(() => this.copiedStore.set(null), 2000);
+    });
   }
 
   close(): void {

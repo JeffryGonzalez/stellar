@@ -1,64 +1,44 @@
-# Angular Developer Tools
+# Stellar Devtools — Backlog & Parking Lot
+
+This is the long-form ideas and backlog file. For current work state, see `CURRENT.md`.
+For design decisions and reasoning, see TDRs in `apps/docs/src/content/docs/explainers/`.
 
 ---
 
-## ✅ Resolved — formerly on the agenda
+## Plugin architecture — where's the line?
 
-- **Parameterized operators**: Implemented as curried functions (`keepFirst(n)`, `keepLast(n)`, `truncate(n)`, `replace(fn)`) returning `SanitizationHandler`. Mixed freely with Tier 1 string rules.
-- **Array handling**: `arrayOf(config)` is the canonical form. Single-element tuple `[config]` still works for compatibility. Decision: legibility at the trust boundary wins.
-- **`@hypertheory/sanitize` as standalone**: Confirmed — implemented as an independent library in the monorepo. Zero devtools dependency.
-- **Convention-based auto-redaction**: `autoRedactConfig()` implemented. Called automatically in `withStellarDevtools`, merged with explicit `sanitize` option (explicit wins).
-- **String literals vs function-call style**: String literals for named rules is correct. `docs/sanitizer.md` is now a historical artifact — `docs/sanitize-api-design.md` is the current design reference.
-- **Sanitization demo route**: `/sanitize` route in the demo app demonstrates every operator with a `SensitiveDataStore`.
+The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on. The open question: which plugins, if any, are so universally needed that leaving them out feels like a footgun?
 
-## 📋 Next Up
+Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellarDevtools` itself. Keeping the core empty and everything explicit avoids that.
 
-### Plugin architecture — where's the line?
-The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on in principle. Still need to decide: which plugins, if any, are so universally needed that leaving them out feels like a footgun? Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellarDevtools` itself.
+This also sets up a clean story for the three deployment contexts:
+- **Exploratory Dev** — `withNgrxSignalStoreTools()` etc. wired in `app.config.ts`
+- **Testing** — a composable fixture that includes only what makes sense for tests, sanitization opt-out explicit
+- **Runtime Diagnostics** — structural/behavioral signals only, no state values, different plugin set
 
-### Snapshot export — "Copy for AI" + filesystem write
-
-Two delivery mechanisms for getting a snapshot to an AI assistant, in shipping order:
-
-**1. Clipboard ("Copy for AI" button)** — overlay button that formats the current snapshot(s) as the AI-readable markdown format from `docs/ai-accessibility.md` (Level 1) and copies to clipboard. Developer pastes into chat. Per-store buttons + an "all stores" button in the overlay header. Sanitization runs before copy — this is non-negotiable.
-
-**2. Filesystem write** — a companion button (or the same button with a second action) that writes the snapshot to `.stellar/snapshot.json` at the project root. In a Claude Code session, Claude can read this file directly — developer says "I saved a snapshot" and Claude reads it without any copy-paste. This is the practical stepping stone to MCP: most of the benefit, almost none of the infrastructure.
-
-**3. MCP server** — the right long-term answer but worth pondering before building. The filesystem approach will clarify exactly what the MCP server needs to expose. Build clipboard + filesystem first, let that experience inform the MCP architecture.
-
-Format for both: the self-describing markdown snapshot from `docs/ai-accessibility.md`. JSON inside the markdown fences for programmatic use. Sanitized before it leaves the devtools boundary.
+**Don't decide production-mode gating until this is settled** — they're coupled. If each plugin is its own provider, gating applies per-plugin independently.
 
 ---
 
-### Snapshot format — complete the AI Accessibility slots
-Current `StateSnapshot` only has `storeName`, `timestamp`, `state`, `route`. Missing:
-- `inferredShape: ShapeMap` — should ship in v1 (zero cost to compute, high AI value)
-- `sourceHint?`, `typeDefinition?`, `trigger?` — later layers, but slots must exist in the model now
+## Snapshot export — filesystem write
 
-Do not add export/share features until `inferredShape` is at minimum present.
+After clipboard is shipped: a companion action that writes the snapshot to `.stellar/snapshot.json` at the project root. In a Claude Code session, Claude reads this file directly — developer says "I saved a snapshot" and Claude reads it without copy-paste. This is the practical stepping stone to MCP.
+
+**Prerequisite:** clipboard feature ships first.
 
 ---
 
+## MCP server
 
+The right long-term answer for AI assistant integration. Worth building after the filesystem approach, which will clarify exactly what the MCP server needs to expose.
 
-I want to develop a set of Angular developer tools more like the Vue or Tanstack Query developer tools than the team-provided browser devtools extension.
+---
 
-Below are the potential features I'd like.
+## Causal event stream — `withPlaywrightObserver()`
 
-## Replacement for the Redux Devtools Browser Extension
+State snapshots tell you *where* the app is. The causal event stream tells you *how it got there* — the sequence of user interactions, network requests, and state transitions that led to the current moment.
 
-For developers that are using the [Ngrx](https://ngrx.io) store, or the newer signal store, there is either direct support for hooking into the redux devtools in the browser (in the case of the NGRX Store), or with the Angular Architects `withDevtools` feature (https://github.com/angular-architects/ngrx-toolkit?tab=readme-ov-file#devtools-withdevtools)
-
-Both of these approaches assume you are going to use the aged Redux Devtools extension, found here https://github.com/reduxjs/redux-devtools 
-
-I would like to investigate whether a "Devtools" experience that runs in the browser (like the Tanstack Query Devtool) could be a sink and catch the same data/events that the browser devtools does currently?
-
-## Backlog / Parking Lot
-
-### Causal event stream — `withPlaywrightObserver()`
-State snapshots tell you *where* the app is. The causal event stream tells you *how it got there* — the sequence of user interactions, network requests, and state transitions that led to the current moment. This is the primary friction in AI-assisted debugging: the developer manually relays the sequence; the AI reasons about a static artifact without the context that produced it.
-
-The mechanism: lightweight monkey-patching of `fetch`, document-level capture listeners for user interactions, and store method wrapping (already partially in place via `withStellarDevtools`). Produces a structured event log:
+The mechanism: lightweight monkey-patching of `fetch`, document-level capture listeners for user interactions, and store method wrapping. Produces a structured event log:
 
 ```
 [click]  button "Load User"
@@ -68,145 +48,80 @@ The mechanism: lightweight monkey-patching of `fetch`, document-level capture li
 [state]  UserStore → { error: "Forbidden" }
 ```
 
-Delivered via Playwright's `page.addInitScript()` in test environments — zero production footprint, no external connections, developer-initiated. Events stream through Playwright's console bridge to a local log. Feeds the `trigger` field in state snapshots automatically.
+Delivered via Playwright's `page.addInitScript()` in test environments. Feeds the `trigger` field in state snapshots automatically.
 
-Companion feature: **conditional watchpoints** — `window.__stellarDevtools.watch('UserStore', state => state.errorCount > 3, { mode: 'record' })` — state-level conditional breakpoints that can trigger snapshot capture, a `debugger` pause, or a Playwright screenshot automatically.
+Companion: **conditional watchpoints** — `window.__stellarDevtools.watch('UserStore', state => state.errorCount > 3, { mode: 'record' })`.
 
 See `docs/causal-event-stream.md` for full design notes.
 
 ---
 
-### User-defined semantic aliases in `@hypertheory/sanitize`
-The built-in handler map ships with a vocabulary of common sensitive data types (`creditCard`,
-`ssn`, `apiKey`, etc.). Domain-specific industries have their own conventions — insurance might
-need `policyNumber`, `claimNumber`; healthcare might need `npi`, `memberId`, `diagnosisCode`;
-finance might need `routingNumber`, `accountNumber`.
+## Runtime diagnostics — behavioral rubrics
 
-Design a way for consumers to register custom aliases that extend `SanitizationRule` with their
-own keys, pointing at existing primitive operators or custom handlers. The key constraint: it
-must preserve the `satisfies`-based key narrowing so that custom aliases get the same
-autocomplete and type-safety as built-ins. Two likely approaches:
-- A `createSanitizer(customHandlers)` factory that returns a configured `sanitized` function
-  with an extended rule type
-- A standalone `extendHandlers(additions)` helper that merges into the type and returns a
-  new `sanitized` variant
+The most ambitious context. Angular-specific heuristics (service duplication, premature destruction, change detection thrashing, API cache staleness) encoded as detectable runtime patterns. The causal event stream is a prerequisite — you can't detect "service created twice" without a timeline.
 
-Leaning toward the factory approach. The API would look like:
+The deeper vision: bridging the gap between subjective developer experience ("feels janky", "sluggish on this route") and objective instrumentation. Human and AI collaborating to make the felt sense of an application legible and actionable.
+
+Not called "lint mode" — static linters check code; this checks *runtime behavior*. "Runtime diagnostics" is more accurate.
+
+---
+
+## User-defined semantic aliases in `@hypertheory/sanitize`
+
+`createSanitizer()` factory for domain-specific aliases. Consumers register custom aliases that extend `SanitizationRule` with their own keys, preserving the `satisfies`-based key narrowing:
 
 ```ts
 const { sanitized } = createSanitizer({
-  policyNumber: 'redacted',        // alias pointing at a primitive
-  claimNumber:  'hashed',          // alias pointing at a primitive
-  memberId:     (v) => v.slice(-4), // custom handler function
+  policyNumber: 'redacted',
+  claimNumber:  'hashed',
+  memberId:     (v) => v.slice(-4),
 });
-
-// Result: sanitized() typed with built-ins + custom aliases,
-// full autocomplete, compile error if alias name is mistyped
 ```
 
-Values can be either a primitive operator name (string literal) or a raw `(v: string) => string`
-handler — gives teams full flexibility without sacrificing type safety. The intent is that custom
-aliases are always defined in terms of primitives where possible, keeping semantics consistent and
-auditable. Raw handlers are the escape hatch, not the default.
-
-The design goal is to make the developer *think about what they're mapping to* — choosing
-`'redacted'` vs `'hashed'` for `policyNumber` is a deliberate decision about whether identity
-correlation matters. The API should make that choice visible, not hide it.
+See backlog note in `overview.md` (pre-cleanup) for full design discussion.
 
 ---
 
-### Plugin architecture for `provideStellarDevtools`
-Instead of a monolithic provider, adopt a plugin pattern mirroring Angular's own `provideRouter(withHashLocation(), withViewTransitions())`:
+## Production-mode gating of the overlay
 
-```ts
-provideStellarDevtools(
-  withNgrxSignalStoreTools(),
-  withHttpTrafficMonitoring(),
-  withStateSanitization(pipe(omit('password'), redact('ssn', { keep: 'last4' }))),
-)
-```
+`provideStellarDevtools()` registers the API only; `StellarOverlayComponent` is the optional UI layer. Consumers wrap it with whatever environment guard fits their deployment model. `isDevMode()` inside the component serves as a safe default.
 
-Core becomes just the overlay + registry — tiny and tree-shakeable. Each `withXXX()` function carries its own config, which is the main argument for *not* defaulting anything in: including a plugin by default would force opinionated defaults or push config onto `provideStellarDevtools` itself. Keeping the core empty and everything explicit avoids that. Needs design discussion — particularly where the line sits between "everyone will want this" and "genuinely opt-in".
+Visual overlay and `window.__stellarDevtools` API are independently controllable — some teams want the API in production for headless tooling (AI assistants, automated monitoring) without the visual overlay.
+
+**Don't design this until the plugin architecture is settled.**
 
 ---
 
-### State sanitization ⚠️ (should land before any export/share features)
-Before state is displayed in the overlay, exported, or transmitted anywhere, there should be a way to elide sensitive values — PII, API keys, tokens, passwords, etc.
+## Multi-store pinning
 
-Two-layer approach worth designing together:
-
-**Convention-based auto-redaction (zero config)**: any state key whose name matches a built-in blocklist (`password`, `token`, `secret`, `apiKey`, `ssn`, `creditCard`, etc.) gets its value replaced with `[redacted]` automatically. Covers the obvious cases without any developer effort.
-
-**Per-store sanitizer function (explicit override)**: an optional second argument to `withStellarDevtools`:
-```ts
-withStellarDevtools('UserStore', {
-  sanitize: (state) => ({ ...state, sessionToken: '[redacted]', email: '[redacted]' })
-})
-```
-
-**Global sanitizer**: a config option on `provideStellarDevtools` for app-wide rules, with per-store overrides taking precedence.
-
-The sanitizer should run *before* the snapshot is recorded — so redacted values never enter the history at all, not just hidden in the UI. This matters especially once export/share features exist. Convention-based defaults make this easy for most folks, explicit config handles the edge cases.
-
-**Longer-term design direction — runtime operator pipeline**: Rather than a raw sanitize function, consider a composable pipeline of named operators that mirror familiar TypeScript type utilities — immediately readable to any TS developer:
-```ts
-withStellarDevtools('UserStore', {
-  sanitize: pipe(
-    omit('sessionToken', 'password'),
-    pick('userId', 'role', 'preferences'),
-    redact('creditCard', { keep: 'last4' }),
-    redact('ssn', { keep: 'last4' }),
-  )
-})
-```
-The distinction between `omit` (remove entirely) and `redact` (transform to a safe representation) is meaningful — a masked credit card number is still useful context; an absent one isn't. This pattern also has legs in event sourcing contexts where the same problem (PII in recorded events) exists. Worth designing as a standalone composable utility that stellardevtools consumes rather than baking it in — could be its own small package.
+"Pin" icon to keep a store panel open alongside a second. Deferred pending a real use case.
 
 ---
 
-### Production-mode gating of the overlay
+## Panel resize
 
-Switching to the `<stellar-overlay />` selector pattern (vs. the earlier `createComponent` + `document.body.appendChild` approach) means the consumer controls when and where the overlay is mounted. This opens a real question: how does a library user exclude the overlay from production builds without forking their `app.ts`?
-
-A few dimensions to design around:
-
-**Visual overlay vs. the `window.__stellarDevtools` API are different things.** Some teams legitimately want the API surface available in production (or a staging environment) for headless tooling — AI assistants, automated monitoring, support tooling — while not wanting the visual overlay at all. The two should be independently controllable.
-
-**Options worth evaluating:**
-- `isDevMode()` guard inside `StellarOverlayComponent` itself — simplest, no consumer effort, but hardcodes Angular's definition of "dev". Doesn't cover the "I want the API in prod" case.
-- A `disableInProduction` option on `provideStellarDevtools()` — lets the consumer override the default, but requires them to wire it up.
-- Separate `provideDevOnlyStellarDevtools()` / `provideStellarDevtools()` providers — consumer uses environment-conditional provider registration (Angular's standard pattern), full tree-shaking, nothing ships in the prod bundle if they choose it. Most idiomatic Angular; no magic in the library.
-- A `headless: true` option — renders nothing in the UI but still wires up `window.__stellarDevtools`. Useful for the "API in prod" use case.
-
-The likely end state is probably: `provideStellarDevtools()` registers the API only; `StellarOverlayComponent` is the optional UI layer, and consumers wrap it with whatever environment guard fits their deployment model. `isDevMode()` inside the component can serve as a safe default while still allowing override.
-
-**Don't decide this until the plugin architecture is settled** — the two are coupled. If each plugin is its own provider, the production gating question applies to each one independently.
+Panel width is fixed at 480px. Add a horizontal drag-to-resize handle on the left edge.
 
 ---
 
-### Multi-store pinning
-When viewing a store panel, a "pin" icon could keep it open so a second store can be opened alongside it. Deferred pending a real use case — don't want to add multi-panel complexity just because it's cool. Worth revisiting once the tool is in daily use and it becomes clear whether side-by-side store comparison is actually needed.
+## State export / import
 
-### Panel resize
-The panel width is currently fixed at 480px — gets cramped with deeply nested state. Add a horizontal drag-to-resize handle on the left edge of the panel.
+Export a store's full snapshot history as JSON; re-import in the same or different session. QA workflow superpower from the Redux DevTools era.
 
-### State export / import
-Allow exporting a store's full snapshot history (or a single snapshot) as a JSON file, and re-importing it later — in the same browser session or a different one, or on a colleague's machine. This was a QA workflow superpower in the Redux DevTools era (reproduce exact state from a bug report).
+**Prerequisite:** sanitization in place before this ships (already done).
 
-**Export granularity**: Default should be "export all registered stores as a bundle" (keyed by store name) since stores often have data dependencies. Single-store export as a convenience option for simpler cases. On import, developer can apply the whole bundle or selectively choose stores.
-
-**Technical note**: Exporting is trivial — we already have the state as plain JSON on every snapshot. Importing requires the registry to hold a reference to the actual store instance (not just its history) so we can call `patchState` on it. That's a small but deliberate architectural change. Also worth thinking through: importing into a store whose shape has changed since the export was taken.
-
-**Prerequisite**: State sanitization should be in place before this ships.
-
-### Real-time state mirroring (stretch goal / potential future paid tier)
-A QA tester or customer reproduces a bug while a developer watches their store state update in real-time — or a developer imports a recorded session to replay it locally.
-
-**Simpler near-term path ("record session")**: A mode that captures a compressed, timestamped bundle of all state snapshots across all stores, exportable as a file. QA hits "export session", attaches it to a GitHub issue. Developer imports and replays locally. No infrastructure, works async, gets ~80% of the value.
-
-**Longer-term P2P path (WebRTC)**: Conceptually sound — state is already plain serializable JSON so the data side is solved. The catch is WebRTC requires a signaling server to broker the initial peer connection, which means infrastructure. A small hosted relay could be a natural companion service if the library gets traction — and a natural fit for a paid tier.
+**Technical note:** exporting is trivial. Importing requires the registry to hold a reference to the actual store instance to call `patchState`. Small but deliberate architectural change.
 
 ---
 
-## Second Feature - maybe down the road
+## Real-time state mirroring
 
-I think it would be useful to be able to visualize API calls made by an Angular application - find out if they are being fulfilled by the cache, the age of the responses, etc. I'm thinking the least invasive way would be a development time service worker (like Mock Service Workers (mswjs.io)) that could communicate information about the http actvity back to the development tools.
+**Near-term:** "record session" mode — compressed, timestamped bundle of all state snapshots, exportable as a file. QA attaches to a GitHub issue; developer imports and replays locally.
+
+**Long-term (WebRTC):** state is serializable JSON so the data side is solved. Requires a signaling server — natural fit for a paid companion service if the library gets traction.
+
+---
+
+## HTTP traffic monitoring
+
+Visualize API calls — cache hits, response age, etc. Likely via a development-time service worker (like MSW) that communicates HTTP activity back to the devtools.

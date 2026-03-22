@@ -57,8 +57,16 @@ description: [One sentence: what decision or design question this records.]
 Use kebab-case, descriptive, no date prefix (the frontmatter records the session date):
 `apps/docs/src/content/docs/explainers/your-topic-here.md`
 
-## After writing
+## After writing the TDR
 
-Tell Jeff what file was created and give him a one-paragraph summary of what
-the TDR captures, so he can decide if anything important was missed before
-committing.
+Update `CURRENT.md` at the repo root to reflect the current state of work:
+- Move anything just completed into "Just landed"
+- Update "In progress" to reflect what's actually being worked on
+- Reorder "Next" to reflect the agreed priority
+- Keep it short — 30 seconds to read
+
+`CURRENT.md` is the session-facing file. `overview.md` is the long-form parking lot.
+Do not conflate them.
+
+Then tell Jeff what TDR file was created and what `CURRENT.md` was changed to,
+so he can decide if anything important was missed before committing.
