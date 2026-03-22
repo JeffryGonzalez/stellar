@@ -45,6 +45,58 @@ suggestion. He committed to this in the git history.
 
 ---
 
+## Design Commitments — Enforce These
+
+These are principles that have been explicitly decided and documented. When Jeff proposes
+something that contradicts them, don't just note it — push back with the reason and a
+suggestion. The model: *"here's the concern, here's why it matters [TDR pointer], here's
+what I'd suggest instead."*
+
+### `description` is an ethical commitment, not a nice-to-have
+
+The dev-mode warning for missing `description` on `RegisterOptions` must not be suppressed
+by default, made opt-out, or quietly dropped. It is the implementation of a deliberate
+principle: AI accessibility requires intentional human input, and the one thing that cannot
+be derived from code is *purpose*. A required TypeScript field was considered and rejected
+— it gets gamed with meaningless strings. The warning is the right tool.
+
+If Jeff proposes silencing the warning or making it configurable in a way that defaults to
+off: flag it. Ref: `apps/docs/src/content/docs/explainers/making-stellar-legible-to-ai.md`
+
+### `describe()` completeness — recordings are the right "full picture" artifact
+
+If Jeff proposes making `describe()` accumulate state over time (a "living document"),
+redirect to the recording session. The design reason: bounded, intentional recordings are
+more useful and honest than uncontrolled accretion. `registeredAt` + the explicit caveat
+in `describe()` are the right answer to the lazy-loading problem.
+
+The assumption being tested: whether `registeredAt` + caveat is enough in practice, or
+whether complex apps need the full recording before any AI handoff. Flag this if real usage
+surfaces evidence either way. Ref: `apps/docs/src/content/docs/explainers/making-stellar-legible-to-ai.md`
+
+### Sanitization upstream of everything
+
+Sanitization runs before any state reaches the registry. This is non-negotiable and must
+remain true for recordings, `describe()`, `snapshot()`, `copyAllForAI`, and anything new.
+The recording session uses sanitized state by construction — this is not accidental, it is
+architecturally load-bearing. Do not accept any feature that would expose raw state to
+any export or AI surface.
+
+### `window.__stellarDevtools` is a public contract
+
+Breaking changes to the shape of `snapshot()`, `history()`, `diff()`, `http()`,
+`record`, or `describe()` require explicit versioning discussion. AI tools develop habits
+around stable APIs. Silent changes produce wrong guidance that is hard to debug.
+
+### The recording format is directed graph, not log
+
+The `RecordingSession` format (nodes + edges, typed by interaction kind) was chosen
+deliberately over a flat event log. The causal structure is the value. If Jeff proposes
+collapsing this to a simpler format "for now," push back — the causal graph is the
+artifact that unlocks the use cases in `docs/use-case-log.md`.
+
+---
+
 ## Architecture Commitments
 
 **Framework-agnostic core.** The registry protocol, snapshot types, sanitization pipeline, and
@@ -150,36 +202,48 @@ so consumers don't need a separate import.
 ## Current Implementation Status
 
 ### `@hypertheory/sanitize` — DONE
-`projects/hypertheory/sanitize/src/lib/sanitation.ts` + full test suite.
+`libs/sanitize/src/lib/sanitation.ts` + full test suite.
 All Tier 1 (named rules), Tier 2 (parameterized operators), `arrayOf()`, `sanitizeConfig<T>()`,
 and `autoRedactConfig()` are implemented and tested.
 
-### `@hypertheory/stellardevtools` — Functional, snapshot format incomplete
-- `withStellarDevtools(name, { sanitize? })` — hooks into NgRx Signal Store, records sanitized state
-- `provideStellarDevtools()` — sets up `window.__stellarDevtools` API (`snapshot`, `history`, `diff`)
-- `StellarOverlayComponent` — visual overlay (panel, history list, diff view, resize handles)
-- All CSS classes prefixed `stellar-*` to avoid consumer framework collisions (learned the hard way — DaisyUI owns `.fab`)
-- Overlay is mounted via `<stellar-overlay />` in the consumer's app template (NOT via `createComponent`/`document.body.appendChild` — that approach broke event handling)
+### `@hypertheory/stellar-ng-devtools` — Functional
+- `withStellarDevtools(name, options)` — hooks into NgRx Signal Store, records sanitized state
+  - `options.description` — dev-mode warning if absent; appears in `describe()`
+  - `options.sourceHint` — file path hint for AI consumers
+  - `options.sanitize` — merged with `autoRedactConfig()`
+- `provideStellarDevtools(...features)` — sets up `window.__stellarDevtools`
+- `withHttpTrafficMonitoring()` — `window.fetch` interceptor with causal context capture
+- `StellarOverlayComponent` — overlay with state/diff/HTTP panels, ⏺ Rec / ⏹ Stop controls
+- `RecordingService` — `start()` / `stop()` → directed graph `RecordingSession` / `download()`
+- All CSS classes prefixed `stellar-*` (DaisyUI owns `.fab` — learned the hard way)
+- Overlay mounted via `<stellar-overlay />` in consumer template (NOT programmatic — broke event handling)
 
-### Demo app — `projects/demo/`
+### `window.__stellarDevtools` — Full surface live
+`snapshot()`, `history(name, n)`, `diff(name)`, `http()`, `describe()`,
+`record.start(name?)`, `record.stop()`, `record.stopAndDownload()`
+
+### Demo app — `apps/demo-ng/`
 - Tailwind CSS v4 + DaisyUI v5 (dark theme)
-- PostCSS config MUST be `.postcssrc.json` at workspace root — Angular only reads JSON format
-- Two routes: `/` (home with counter/books/user stores) and `/sanitize` (demonstrates every sanitization operator)
-- `SensitiveDataStore` in `src/app/sensitive-data.store.ts` — canonical demo of all operators
+- PostCSS config MUST be `.postcssrc.json` at workspace root
+- Routes: `/` (counter/books/user/todos stores), `/sanitize` (all sanitization operators)
+- 39 Playwright e2e tests: API contract, sanitization, trigger field, AI format
 
-### `window.__stellarDevtools` (Level 2 AI Accessibility)
-Implemented. `snapshot()`, `history(name, n)`, `diff(name)` are live.
+### `StateSnapshot` — complete
+`inferredShape`, `trigger`, `httpEventId` all implemented.
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `docs/ai-accessibility.md` | Central design document — read first |
+| `apps/docs/src/content/docs/explainers/inside-the-codebase.md` | Central framing — read first |
+| `apps/docs/src/content/docs/explainers/making-stellar-legible-to-ai.md` | `describe()` design + `description` field intent |
+| `apps/docs/src/content/docs/reference/stellar-ng-devtools.md` | Full `window.__stellarDevtools` API reference |
+| `docs/use-case-log.md` | Use cases + evidence principle |
+| `docs/ai-accessibility.md` | Original AI accessibility design doc |
 | `docs/sanitize-api-design.md` | Current sanitize API design reference |
-| `docs/sanitizer.md` | **Historical** — early design doc, uses old function-call style (`redact()`, `omit()`). Superseded by the string-literal implementation. |
-| `docs/sanitation.ts` | **Historical** — prototype, superseded by the library |
-| `docs/notes.md` | Critical `satisfies` explanation + `arrayOf()` design notes |
-| `overview.md` | Agenda, backlog, current open questions |
-| `projects/hypertheory/sanitize/src/lib/sanitation.ts` | The sanitize library |
-| `projects/hypertheory/stellardevtools/src/lib/` | The devtools library |
-| `projects/demo/src/app/` | Demo app |
+| `CURRENT.md` | Session-facing: just landed / next / parked |
+| `libs/stellar-ng/src/lib/models.ts` | All shared types |
+| `libs/stellar-ng/src/lib/stellar-registry.service.ts` | Core registry + click/event/HTTP context capture |
+| `libs/stellar-ng/src/lib/recording.service.ts` | Recording session graph builder |
+| `libs/stellar-ng/src/lib/stellar-overlay.component.ts` | Overlay UI |
+| `libs/stellar-ng/src/lib/provide-stellar-devtools.ts` | `window.__stellarDevtools` surface |

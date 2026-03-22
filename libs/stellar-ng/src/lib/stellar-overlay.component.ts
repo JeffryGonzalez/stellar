@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StellarRegistryService } from './stellar-registry.service';
 import { SnapshotWriterService } from './snapshot-writer.service';
+import { RecordingService } from './recording.service';
 import { HttpEvent, StateSnapshot } from './models';
 import { computeDiff, DiffEntry, formatValue } from './diff.utils';
 import { formatStoreForAI, formatAllStoresForAI } from './format-for-ai';
@@ -499,6 +500,57 @@ function highlightValue(value: unknown, indent: number): string {
     }
 
     .stellar-http-chip:hover { background: #313244; }
+
+    .stellar-rec-btn {
+      background: #f38ba8;
+      color: #1e1e2e;
+      border: none;
+      border-radius: 20px;
+      padding: 5px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .stellar-rec-btn:hover { background: #f5a0b5; }
+
+    .stellar-stop-btn {
+      background: #45475a;
+      color: #cdd6f4;
+      border: none;
+      border-radius: 20px;
+      padding: 5px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    .stellar-stop-btn:hover { background: #585b70; }
+
+    .stellar-rec-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #f38ba8;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .stellar-rec-dot {
+      width: 8px;
+      height: 8px;
+      background: #f38ba8;
+      border-radius: 50%;
+      animation: stellar-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes stellar-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
   `],
   template: `
     @if (mode() === 'http') {
@@ -665,6 +717,20 @@ function highlightValue(value: unknown, indent: number): string {
             </button>
           </div>
         }
+        @if (!isRecording()) {
+          <button class="stellar-rec-btn" (click)="startRecording()">⏺ Rec</button>
+        } @else {
+          <div class="stellar-rec-indicator">
+            <div class="stellar-rec-dot"></div>
+            Recording…
+          </div>
+          <button class="stellar-stop-btn" (click)="stopRecording()">⏹ Stop &amp; Export</button>
+        }
+      }
+      @if (isRecording() && mode() !== 'picking') {
+        <div class="stellar-rec-indicator">
+          <div class="stellar-rec-dot"></div>
+        </div>
       }
       <button class="stellar-fab" (click)="onFabClick()">✦ Stellar</button>
     </div>
@@ -674,6 +740,9 @@ export class StellarOverlayComponent {
   private registry = inject(StellarRegistryService);
   private sanitizer = inject(DomSanitizer);
   private writer = inject(SnapshotWriterService);
+  private recorder = inject(RecordingService);
+
+  readonly isRecording = this.recorder.isRecording;
 
   readonly stores = this.registry.stores;
   readonly httpEvents = this.registry.httpEvents;
@@ -860,6 +929,17 @@ export class StellarOverlayComponent {
       this.copiedStore.set(key);
       setTimeout(() => this.copiedStore.set(null), 2000);
     });
+  }
+
+  startRecording(): void {
+    this.recorder.start();
+  }
+
+  stopRecording(): void {
+    const session = this.recorder.stop();
+    if (session) {
+      this.recorder.download(session);
+    }
   }
 
   close(): void {

@@ -15,7 +15,10 @@ export const TodosStore = signalStore(
     loading: false,
     error: null as string | null,
   }),
-  withStellarDevtools('TodosStore'),
+  withStellarDevtools('TodosStore', {
+    description: 'Manages the todo list — fetch from jsonplaceholder, add, toggle completion. Exercises HTTP monitoring and causal linking.',
+    sourceHint: 'apps/demo-ng/src/app/todos.store.ts',
+  }),
   withMethods(store => ({
     async load() {
       patchState(store, { loading: true, error: null });

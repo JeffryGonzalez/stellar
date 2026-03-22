@@ -6,20 +6,31 @@ Updated at the end of every session via `/capture`.
 ---
 
 ## Just landed
+- **`describe()` on `window.__stellarDevtools`** — structured manifest: store list with `description`, `snapshotCount`, `registeredAt` (lazy-loading visibility), `sourceHint`, API list, `caveat`
+- **`description` field on `RegisterOptions`** — JSDoc, dev-mode warning if absent, populated on all demo stores
+- **`registeredAt` on `StoreEntry`** — ms since app start; makes lazy-loading incompleteness visible to AI consumers
+- **`window.__stellarDevtools` API reference** — full reference doc at `apps/docs/src/content/docs/reference/stellar-ng-devtools.md`, feeds `llms_full.txt`; includes CLAUDE.md snippet for consumers
+- **Design commitments in CLAUDE.md** — five explicit commitments with pushback instructions; TDRs provide the reasoning, CLAUDE.md provides the mandate
+- **`/review` skill updated** — now includes design commitment drift check, TDR assumption tracking, and test coverage gap audit
+- **TDR: Making Stellar Legible to AI** — `apps/docs/src/content/docs/explainers/making-stellar-legible-to-ai.md`
+- **TDR: Keeping Principles Alive Across Sessions** — `apps/docs/src/content/docs/explainers/keeping-principles-alive.md`
+- **Recording session** — `RecordingService.start()` / `stop()` + `⏺ Rec` / `⏹ Stop & Export` buttons in overlay; `stop()` builds a directed graph `RecordingSession` and downloads it as JSON
+- **`window.__stellarDevtools.record`** — `record.start(name?)`, `record.stop()`, `record.stopAndDownload()`
+- `RecordingSession`, `RecordingNode`, `RecordingEdge`, `RecordingNodeType` types in public API
+- `docs/use-case-log.md` — five use cases + evidence principle + Mentat framing
+- `docs/sample-snapshot.json` + `docs/sample-ai-context.md` — realistic sample output for visualization
+- `apps/docs/src/content/docs/explainers/inside-the-codebase.md` — pinned TDR (sidebar.order: 0)
 - **Playwright e2e suite** — 39 tests: API contract, sanitization (all operators), trigger field, AI format validity
 - **`withHttpTrafficMonitoring()`** — `window.fetch` interceptor, causal context captured at call time
-- **Causal linking** — `httpEventId` on `StateSnapshot`; history items show `← GET /path (200)` badge; HTTP panel shows `→ StoreName #N` back-refs
-- **"AI context first" heuristic** — design AI-readable output before UI; if you can't articulate what an AI does with it, it's not load-bearing
+- **Causal linking** — `httpEventId` on `StateSnapshot`; history items show `← GET /path (200)` badge
 - **`window.__stellarDevtools.http()`** — returns full `HttpEvent[]`
 - **TodosStore demo** — jsonplaceholder fetch to exercise HTTP monitoring end-to-end
-- **`docs/clean-code-for-ai.md`** — cognitive prosthetics vs load-bearing conventions
-- **`docs/causal-graph-and-source-access.md`** — why Stellar's epistemic position differs from generic devtools
-- Playwright config: replaced `nxE2EPreset(__filename)` with explicit config (fixes Nx ESM graph processing error)
 
 ## Next
-1. **Playwright tests for HTTP monitoring** — `window.__stellarDevtools.http()` shape, `httpEventId` on snapshots, back-refs in AI format; use `page.route()` for controlled responses
-2. **Causal graph view in overlay** — proper visualization of click → event → HTTP → state delta; needs a store with enough causal depth (outbox pattern or query cache would qualify)
-3. **`withHttpTrafficMonitoring()` options** — URL filter patterns (don't capture `/assets/`, `/favicon.ico`), max events cap currently hardcoded at 100
+1. **Playwright tests for recording** — `window.__stellarDevtools.record` API shape, exported JSON structure, edge wiring
+2. **Playwright tests for HTTP monitoring + describe()** — `http()` shape, `httpEventId` on snapshots, `describe()` output shape including `description` and `registeredAt`
+3. **Causal graph view in overlay** — proper visualization of the recording; outbox pattern or query cache as demo candidate
+4. **`withHttpTrafficMonitoring()` options** — URL filter patterns (don't capture `/assets/`, `/favicon.ico`)
 
 ## Design questions open
 - WebSockets and SSE — parked until fetch is solid

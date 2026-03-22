@@ -68,6 +68,8 @@ export const SensitiveDataStore = signalStore(
   { providedIn: 'root' },
   withState<SensitiveDataState>(initialState),
   withStellarDevtools('SensitiveDataStore', {
+    description: 'Canonical demo of every sanitization operator. Contains intentionally sensitive-looking data that is sanitized before reaching devtools.',
+    sourceHint: 'apps/demo-ng/src/app/sensitive-data.store.ts',
     sanitize: sanitizeConfig<SensitiveDataState>({
       // Primitive operators
       sessionToken: 'omitted',

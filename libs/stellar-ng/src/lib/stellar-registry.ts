@@ -26,10 +26,19 @@ export class StellarRegistry {
   }
 
   register(name: string, options: RegisterOptions = {}): void {
+    if (!options.description && typeof ngDevMode !== 'undefined' && ngDevMode) {
+      console.warn(
+        `[Stellar] '${name}' has no description. Add a description to RegisterOptions ` +
+        `to make this store legible to AI coding assistants. ` +
+        `See: window.__stellarDevtools.describe()`,
+      );
+    }
     this.stores.set(name, {
       name,
+      description: options.description,
       sourceHint: options.sourceHint,
       typeDefinition: options.typeDefinition,
+      registeredAt: Date.now(),
       history: [],
     });
     this.notify();

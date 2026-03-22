@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { StellarRegistryService } from './stellar-registry.service';
 import { SnapshotWriterService } from './snapshot-writer.service';
+import { RecordingService } from './recording.service';
 import { AnyStellarFeature } from './stellar-feature';
 
 export function provideStellarDevtools(...features: AnyStellarFeature[]): EnvironmentProviders {
@@ -16,8 +17,24 @@ export function provideStellarDevtools(...features: AnyStellarFeature[]): Enviro
     provideEnvironmentInitializer(() => {
       const registry = inject(StellarRegistryService);
       const writer = inject(SnapshotWriterService);
+      const recorder = inject(RecordingService);
+
+      const appStart = Date.now();
 
       (window as any).__stellarDevtools = {
+        describe: () => ({
+          version: '1.0',
+          stores: registry.getAllStores().map(s => ({
+            name: s.name,
+            description: s.description ?? null,
+            snapshotCount: s.history.length,
+            registeredAt: s.registeredAt - appStart,
+            sourceHint: s.sourceHint ?? null,
+          })),
+          api: ['snapshot', 'history', 'diff', 'http', 'record', 'describe'],
+          recordingActive: recorder.isRecording(),
+          caveat: 'Lazy-loaded routes may register additional stores. Navigate to all relevant routes before calling describe() for full coverage.',
+        }),
         snapshot: (name?: string) =>
           name ? registry.getStore(name) : registry.getAllStores(),
         history: (name: string, n = 10) => {
@@ -32,6 +49,15 @@ export function provideStellarDevtools(...features: AnyStellarFeature[]): Enviro
         },
         save: () => writer.save(registry.getAllStores()),
         http: () => registry.getHttpEvents(),
+        record: {
+          start: (name?: string) => recorder.start(name),
+          stop: () => recorder.stop(),
+          stopAndDownload: () => {
+            const session = recorder.stop();
+            if (session) recorder.download(session);
+            return session;
+          },
+        },
       };
     }),
   ]);

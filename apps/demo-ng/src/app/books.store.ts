@@ -37,6 +37,8 @@ export const BooksStore = signalStore(
     loading: false,
   }),
   withStellarDevtools('BooksStore', {
+    description: 'Reading list with filter, search, and selection. searchQuery is omitted from devtools — demo of sanitizing ephemeral UI state that has no debugging value.',
+    sourceHint: 'apps/demo-ng/src/app/books.store.ts',
     sanitize: sanitizeConfig<BooksState>({
       searchQuery: 'omitted',
     }),
