@@ -35,6 +35,7 @@ export class StellarRegistryService {
 
   private lastClick: { label: string; time: number } | null = null;
   private lastEvent: { type: string; payload: unknown; time: number } | null = null;
+  private lastHttpEventId: { id: string; time: number } | null = null;
 
   constructor() {
     this.core.subscribe(() => {
@@ -67,6 +68,7 @@ export class StellarRegistryService {
     this.core.recordState(name, state, {
       route: this.router?.url ?? null,
       trigger: this.recentTrigger(),
+      httpEventId: this.recentHttpEventId(),
     });
   }
 
@@ -76,10 +78,21 @@ export class StellarRegistryService {
 
   recordHttpEvent(event: HttpEvent): void {
     this._httpEvents.update(events => [...events.slice(-99), event]);
+    if (event.ok) {
+      this.lastHttpEventId = { id: event.id, time: performance.now() };
+    }
   }
 
   getHttpEvents(): HttpEvent[] {
     return this._httpEvents();
+  }
+
+  private recentHttpEventId(): string | undefined {
+    const now = performance.now();
+    // 300ms window: response just arrived, Angular's effect scheduler hasn't run yet
+    return this.lastHttpEventId && now - this.lastHttpEventId.time < 300
+      ? this.lastHttpEventId.id
+      : undefined;
   }
 
   private recentTrigger(): string | undefined {

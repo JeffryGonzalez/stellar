@@ -38,7 +38,7 @@ export class StellarRegistry {
   recordState(
     name: string,
     state: Record<string, unknown>,
-    context: { route?: string | null; trigger?: string } = {},
+    context: { route?: string | null; trigger?: string; httpEventId?: string } = {},
   ): void {
     const entry = this.stores.get(name);
     if (!entry) return;
@@ -49,6 +49,7 @@ export class StellarRegistry {
       route: context.route ?? null,
       inferredShape: inferShape(state) as ShapeMap,
       trigger: context.trigger,
+      httpEventId: context.httpEventId,
     };
 
     entry.history = [...entry.history, snapshot];

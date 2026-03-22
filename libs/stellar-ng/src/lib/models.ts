@@ -20,6 +20,7 @@ export interface StateSnapshot {
   route: string | null;
   inferredShape: ShapeMap;
   trigger?: string;
+  httpEventId?: string;  // id of the HttpEvent whose response caused this snapshot
 }
 
 export interface StoreEntry {

@@ -230,6 +230,16 @@ function highlightValue(value: unknown, indent: number): string {
       padding: 0 6px 2px;
     }
 
+    .stellar-http-badge {
+      display: inline-block;
+      font-size: 10px;
+      color: #a6e3a1;
+      padding: 0 6px 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* ── Column divider ──────────────────────────────────────── */
     .stellar-col-divider {
       width: 4px;
@@ -563,7 +573,9 @@ function highlightValue(value: unknown, indent: number): string {
                 [class.stellar-active]="activeIndex() === i"
                 (click)="selectSnapshot(i)">
                 #{{ i + 1 }} &nbsp;{{ snap.timestamp | date:'HH:mm:ss' }}
-                @if (snap.trigger) {
+                @if (snap.httpEventId) {
+                  <span class="stellar-http-badge">{{ httpLabel(snap.httpEventId) }}</span>
+                } @else if (snap.trigger) {
                   <span class="stellar-trigger-badge">{{ snap.trigger }}</span>
                 }
               </div>
@@ -804,6 +816,14 @@ export class StellarOverlayComponent {
     if (m === 'PUT' || m === 'PATCH') return 'stellar-method-put';
     if (m === 'DELETE') return 'stellar-method-delete';
     return 'stellar-method-other';
+  }
+
+  httpLabel(httpEventId: string): string {
+    const ev = this.httpEvents().find(e => e.id === httpEventId);
+    if (!ev) return '← http';
+    const path = ev.url.replace(/^https?:\/\/[^/]+/, '') || ev.url;
+    const truncated = path.length > 40 ? path.slice(0, 37) + '…' : path;
+    return `← ${ev.method} ${truncated} (${ev.status})`;
   }
 
   statusClass(status: number): string {

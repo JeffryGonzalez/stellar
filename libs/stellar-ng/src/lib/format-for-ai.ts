@@ -61,7 +61,7 @@ function formatDiffSummary(prev: StateSnapshot, curr: StateSnapshot): string {
   return changes.length > 0 ? changes.join('\n') : '  (no changes)';
 }
 
-export function formatStoreForAI(entry: StoreEntry): string {
+export function formatStoreForAI(entry: StoreEntry, httpEvents?: HttpEvent[]): string {
   const history = entry.history;
   if (history.length === 0) return `## Stellar Devtools Snapshot — ${entry.name}\n\n*(no state recorded)*\n`;
 
@@ -73,6 +73,10 @@ export function formatStoreForAI(entry: StoreEntry): string {
   lines.push(`**Captured**: ${formatDate(latest.timestamp)}`);
   if (latest.route) lines.push(`**Route**: ${latest.route}`);
   if (latest.trigger) lines.push(`**Trigger**: ${latest.trigger}`);
+  if (latest.httpEventId && httpEvents) {
+    const ev = httpEvents.find(e => e.id === latest.httpEventId);
+    if (ev) lines.push(`**HTTP**: ← ${ev.method} ${ev.url} (${ev.status}, ${ev.duration}ms)`);
+  }
   if (entry.sourceHint) lines.push(`**Source**: ${entry.sourceHint}`);
 
   lines.push('');
@@ -98,8 +102,16 @@ export function formatStoreForAI(entry: StoreEntry): string {
       const prev = recentHistory[i - 1];
       const label = `#${history.length - (recentHistory.length - 1 - i)}`;
       const time = new Date(snap.timestamp).toISOString().replace(/.*T/, '').replace(/\.\d{3}Z$/, ' UTC');
-      const triggerNote = snap.trigger ? ` — ${snap.trigger}` : '';
-      lines.push(`\n**${label}** ${time}${triggerNote}`);
+
+      let contextNote = '';
+      if (snap.httpEventId && httpEvents) {
+        const ev = httpEvents.find(e => e.id === snap.httpEventId);
+        if (ev) contextNote = ` ← ${ev.method} ${ev.url} (${ev.status}, ${ev.duration}ms)`;
+      } else if (snap.trigger) {
+        contextNote = ` — ${snap.trigger}`;
+      }
+
+      lines.push(`\n**${label}** ${time}${contextNote}`);
       lines.push(formatDiffSummary(prev, snap));
     }
   }
@@ -107,7 +119,7 @@ export function formatStoreForAI(entry: StoreEntry): string {
   return lines.join('\n');
 }
 
-export function formatHttpEventsForAI(events: HttpEvent[]): string {
+export function formatHttpEventsForAI(events: HttpEvent[], stores?: StoreEntry[]): string {
   if (events.length === 0) return '## HTTP Traffic\n\n*(no requests recorded)*\n';
 
   const lines: string[] = [];
@@ -121,6 +133,20 @@ export function formatHttpEventsForAI(events: HttpEvent[]): string {
     const statusLabel = ev.status === 0 ? 'ERR' : String(ev.status);
     const triggerNote = ev.trigger ? ` — *${ev.trigger}*` : '';
     lines.push(`**${ev.method}** \`${ev.url}\` → ${statusLabel} (${ev.duration}ms) ${time}${triggerNote}`);
+
+    // Back-references: which store snapshots resulted from this HTTP response
+    if (stores) {
+      const produced = stores.flatMap(store =>
+        store.history
+          .map((snap, i) => ({ store: store.name, index: i + 1 }))
+          .filter((_, i) => store.history[i].httpEventId === ev.id)
+      );
+      if (produced.length > 0) {
+        const refs = produced.map(p => `${p.store} #${p.index}`).join(', ');
+        lines.push(`  → ${refs}`);
+      }
+    }
+
     if (ev.error) {
       lines.push(`  ⚠ ${ev.error}`);
     }
@@ -132,8 +158,8 @@ export function formatHttpEventsForAI(events: HttpEvent[]): string {
 export function formatAllStoresForAI(entries: StoreEntry[], httpEvents?: HttpEvent[]): string {
   const storeSection = entries.length === 0
     ? '*(no stores registered)*\n'
-    : entries.map(e => formatStoreForAI(e)).join('\n\n---\n\n');
+    : entries.map(e => formatStoreForAI(e, httpEvents)).join('\n\n---\n\n');
 
   if (!httpEvents || httpEvents.length === 0) return storeSection;
-  return storeSection + '\n\n---\n\n' + formatHttpEventsForAI(httpEvents);
+  return storeSection + '\n\n---\n\n' + formatHttpEventsForAI(httpEvents, entries);
 }
