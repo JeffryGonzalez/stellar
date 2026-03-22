@@ -1,14 +1,14 @@
 {
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "demo-ng",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
+  "sourceRoot": "apps/demo-ng/src",
+  "prefix": "app",
   "generators": {
     "@schematics/angular:component": {
       "style": "scss"
     }
   },
-  "sourceRoot": "apps/demo-ng/src",
-  "prefix": "app",
   "targets": {
     "build": {
       "executor": "@angular/build:application",
@@ -22,9 +22,7 @@
             "input": "apps/demo-ng/public"
           }
         ],
-        "styles": [
-          "apps/demo-ng/src/styles.css"
-        ],
+        "styles": ["apps/demo-ng/src/styles.css"],
         "outputPath": "dist/demo-ng"
       },
       "configurations": {
@@ -50,9 +48,7 @@
         }
       },
       "defaultConfiguration": "production",
-      "outputs": [
-        "{options.outputPath}"
-      ]
+      "outputs": ["{options.outputPath}"]
     },
     "serve": {
       "executor": "@angular/build:dev-server",

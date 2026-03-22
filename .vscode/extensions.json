@@ -1,6 +1,8 @@
 {
   "recommendations": [
     "angular.ng-template",
-    "nrwl.angular-console"
+    "nrwl.angular-console",
+    "dbaeumer.vscode-eslint",
+    "ms-playwright.playwright"
   ]
 }
