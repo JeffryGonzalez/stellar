@@ -97,6 +97,24 @@ that decision is genuinely new.
 
 ---
 
+## The evidence principle
+
+A thread running through all of these:
+
+**The goal is not to replace judgment. It's to give judgment the evidence it was always trying to approximate.**
+
+"By feel" is what engineers say when they're making a decision with incomplete information under time pressure. The feel is a proxy — a compressed heuristic built from years of pattern-matching against incomplete data. It's not wrong. It's the best available tool when better tools don't exist.
+
+What changes: when the evidence is accessible, feel becomes unnecessary. Not because judgment is replaced, but because judgment now has something real to work with.
+
+And crucially: the AI's most useful contribution is often not the answer but **the variables the developer didn't know to consider**. Git churn says something. Behavioral pattern count says something. The combination says something neither says alone. A developer planning a refactoring who asks "is this stable enough?" is asking one question. The right response is often: "here's the stability signal, and here are three other signals you might want before you decide" — authorship concentration, test coverage delta, how many story cards have touched this in the last quarter.
+
+The Butlerian Jihad (Herbert's *Dune*) was caused not by dangerous machines but by humans who outsourced judgment so completely they lost the capacity to exercise it. The corrective was Mentats — humans trained to *reason at machine scale*, not machines trained to reason in place of humans.
+
+That's the model here. Not "let the AI decide." Not "ignore the AI." Build the tools that let human judgment operate with the evidence it was always reaching for.
+
+---
+
 ## Notes on what these have in common
 
 All of these are downstream of the same foundation:
