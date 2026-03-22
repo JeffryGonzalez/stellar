@@ -6,30 +6,30 @@ Updated at the end of every session via `/capture`.
 ---
 
 ## Just landed
-- "Copy for AI" clipboard button — per-store and all-stores, AI-readable markdown format
-- JSON syntax highlighting in state view (Catppuccin Mocha, inline styles)
-- Default panel width 80dvw, resizable column divider between history and state pane
-- Plugin architecture: `provideStellarDevtools(...features)` + `withNgrxSignalStoreTools()`
-- Library build fixed — both packages build cleanly for npm-link / publish
-- NgRx events API wired as trigger source: trigger now shows e.g. `[Counter] Increment — click: "+"`
-- Demo counter store migrated to `withReducer` + `eventGroup` as live example
-- Three deployment contexts named and designed: Exploratory Dev, Testing, Runtime Diagnostics
-- Session tracking: `CURRENT.md`, `docs/sessions/`, `/capture` skill updated
+- **Playwright e2e suite** — 39 tests: API contract, sanitization (all operators), trigger field, AI format validity
+- **`withHttpTrafficMonitoring()`** — `window.fetch` interceptor, causal context captured at call time
+- **Causal linking** — `httpEventId` on `StateSnapshot`; history items show `← GET /path (200)` badge; HTTP panel shows `→ StoreName #N` back-refs
+- **"AI context first" heuristic** — design AI-readable output before UI; if you can't articulate what an AI does with it, it's not load-bearing
+- **`window.__stellarDevtools.http()`** — returns full `HttpEvent[]`
+- **TodosStore demo** — jsonplaceholder fetch to exercise HTTP monitoring end-to-end
+- **`docs/clean-code-for-ai.md`** — cognitive prosthetics vs load-bearing conventions
+- **`docs/causal-graph-and-source-access.md`** — why Stellar's epistemic position differs from generic devtools
+- Playwright config: replaced `nxE2EPreset(__filename)` with explicit config (fixes Nx ESM graph processing error)
 
 ## Next
-1. **Playwright tests** — `window.__stellarDevtools` API contract, trigger field, sanitization (load-bearing, currently untested), "Copy for AI" format
-2. **`withHttpTrafficMonitoring()`** — intercept `fetch`, surface in existing UI and AI context; design question: augment state view with causal HTTP links vs. dedicated HTTP panel (probably both)
-3. Filesystem snapshot write — `.stellar/snapshot.json` at project root
+1. **Playwright tests for HTTP monitoring** — `window.__stellarDevtools.http()` shape, `httpEventId` on snapshots, back-refs in AI format; use `page.route()` for controlled responses
+2. **Causal graph view in overlay** — proper visualization of click → event → HTTP → state delta; needs a store with enough causal depth (outbox pattern or query cache would qualify)
+3. **`withHttpTrafficMonitoring()` options** — URL filter patterns (don't capture `/assets/`, `/favicon.ico`), max events cap currently hardcoded at 100
 
 ## Design questions open
-- HTTP view: augment existing state timeline with fetch causality, or separate panel, or both?
-- WebSockets and SSE — explicitly parked, revisit when fetch is solid
+- WebSockets and SSE — parked until fetch is solid
+- Outbox pattern demo — perfect case study for causal graph view; Jeff has an existing implementation
+- Angular-native Tanstack Query — `withQuery()` as a signal store feature; natural Stellar integration point; separate design session needed
 
 ## Parked / not this sprint
-- `withNgrxReduxStoreTools()` — classic NgRx/Store users have Redux DevTools; low demand signal needed before building
-- MCP server (filesystem write first)
+- `withNgrxReduxStoreTools()` — classic NgRx/Store users have Redux DevTools; low demand signal
+- MCP server
 - `createSanitizer()` factory (Tier 3 custom aliases)
 - Production-mode gating of the overlay
-- Causal event stream / `withPlaywrightObserver()` (longer road — but HTTP monitoring is the on-ramp)
-- **Bug: panel clips at high browser zoom** — good first GitHub issue when issues are opened
-- Tree view for deeply nested state (need a demo store with big state first)
+- **Bug: panel clips at high browser zoom** — good first GitHub issue
+- Tree view for deeply nested state
