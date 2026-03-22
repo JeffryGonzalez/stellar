@@ -1,6 +1,8 @@
 ---
 title: We're Not Looking Through a Window — We're Inside It
 description: The reframing that distinguishes Stellar from every other developer tool.
+sidebar:
+  order: 0
 ---
 
 *This is a Technical Discussion Record (TDR) — not about a feature, but about the conceptual frame that should govern every design decision this project makes.*
