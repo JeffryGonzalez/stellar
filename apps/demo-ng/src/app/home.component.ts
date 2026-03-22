@@ -1,11 +1,14 @@
 import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CounterStore, counterEvents } from './counter.store';
 import { UserStore } from './user.store';
 import { BooksStore } from './books.store';
+import { TodosStore } from './todos.store';
 import { injectDispatch } from '@ngrx/signals/events';
 
 @Component({
   selector: 'app-home',
+  imports: [FormsModule],
   template: `
     <div class="grid gap-8">
 
@@ -91,6 +94,57 @@ import { injectDispatch } from '@ngrx/signals/events';
         </div>
       </div>
 
+      <!-- Todos (jsonplaceholder — exercises HTTP monitoring) -->
+      <div class="card bg-base-200">
+        <div class="card-body">
+          <h2 class="card-title">
+            Todos
+            @if (todos.loading()) {
+              <span class="loading loading-spinner loading-xs"></span>
+            }
+          </h2>
+
+          @if (todos.error()) {
+            <div class="alert alert-error text-sm py-2">{{ todos.error() }}</div>
+          }
+
+          @if (todos.todos().length === 0 && !todos.loading()) {
+            <p class="text-sm text-base-content/50">No todos loaded yet.</p>
+          } @else {
+            <ul class="divide-y divide-base-300 my-2 max-h-48 overflow-y-auto">
+              @for (todo of todos.todos(); track todo.id) {
+                <li class="py-1.5 flex items-center gap-2">
+                  <input type="checkbox" class="checkbox checkbox-xs"
+                         [checked]="todo.completed"
+                         (change)="todos.toggleTodo(todo.id)" />
+                  <span class="text-sm flex-1" [class.line-through]="todo.completed"
+                        [class.opacity-40]="todo.completed">
+                    {{ todo.title }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-sm btn-primary" (click)="todos.load()">Load todos</button>
+            <div class="flex gap-1 flex-1 min-w-48">
+              <input class="input input-sm input-bordered flex-1"
+                     placeholder="New todo…"
+                     [(ngModel)]="todoInput" />
+              <button class="btn btn-sm"
+                      [disabled]="!todoInput.trim()"
+                      (click)="todos.addTodo(todoInput); todoInput = ''">Add</button>
+            </div>
+            @if (todos.todos().some(t => t.completed)) {
+              <button class="btn btn-sm btn-ghost" (click)="todos.clearCompleted()">
+                Clear completed
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
     </div>
   `,
 })
@@ -99,4 +153,6 @@ export class HomeComponent {
   readonly dispatch = injectDispatch(counterEvents);
   readonly user = inject(UserStore);
   readonly books = inject(BooksStore);
+  readonly todos = inject(TodosStore);
+  todoInput = '';
 }
