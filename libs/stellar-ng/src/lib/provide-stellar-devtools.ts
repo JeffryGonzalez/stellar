@@ -5,6 +5,7 @@ import {
   provideEnvironmentInitializer,
 } from '@angular/core';
 import { StellarRegistryService } from './stellar-registry.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 import { AnyStellarFeature } from './stellar-feature';
 
 export function provideStellarDevtools(...features: AnyStellarFeature[]): EnvironmentProviders {
@@ -14,6 +15,7 @@ export function provideStellarDevtools(...features: AnyStellarFeature[]): Enviro
     ...featureProviders,
     provideEnvironmentInitializer(() => {
       const registry = inject(StellarRegistryService);
+      const writer = inject(SnapshotWriterService);
 
       (window as any).__stellarDevtools = {
         snapshot: (name?: string) =>
@@ -28,6 +30,7 @@ export function provideStellarDevtools(...features: AnyStellarFeature[]): Enviro
           const h = store.history;
           return { from: h[h.length - 2], to: h[h.length - 1] };
         },
+        save: () => writer.save(registry.getAllStores()),
       };
     }),
   ]);

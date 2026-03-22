@@ -2,6 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StellarRegistryService } from './stellar-registry.service';
+import { SnapshotWriterService } from './snapshot-writer.service';
 import { StateSnapshot } from './models';
 import { computeDiff, DiffEntry, formatValue } from './diff.utils';
 import { formatStoreForAI, formatAllStoresForAI } from './format-for-ai';
@@ -381,6 +382,17 @@ function highlightValue(value: unknown, indent: number): string {
       padding: 4px 4px 0;
       display: flex;
       justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .stellar-copy-btn.stellar-saved {
+      color: #89b4fa;
+      border-color: #89b4fa;
+    }
+
+    .stellar-copy-btn.stellar-error {
+      color: #f38ba8;
+      border-color: #f38ba8;
     }
   `],
   template: `
@@ -493,7 +505,14 @@ function highlightValue(value: unknown, indent: number): string {
               class="stellar-copy-btn"
               [class.stellar-copied]="copiedStore() === '__all__'"
               (click)="copyAllForAI()">
-              {{ copiedStore() === '__all__' ? '✓ Copied all' : 'Copy all for AI' }}
+              {{ copiedStore() === '__all__' ? '✓ Copied' : 'Copy all for AI' }}
+            </button>
+            <button
+              class="stellar-copy-btn"
+              [class.stellar-saved]="savedState() === 'saved'"
+              [class.stellar-error]="savedState() === 'error'"
+              (click)="saveAllForAI()">
+              {{ savedState() === 'saved' ? '✓ Saved' : savedState() === 'error' ? '✕ Failed' : 'Save for AI' }}
             </button>
           </div>
         }
@@ -505,6 +524,7 @@ function highlightValue(value: unknown, indent: number): string {
 export class StellarOverlayComponent {
   private registry = inject(StellarRegistryService);
   private sanitizer = inject(DomSanitizer);
+  private writer = inject(SnapshotWriterService);
 
   readonly stores = this.registry.stores;
   readonly mode = signal<OverlayMode>('closed');
@@ -518,6 +538,7 @@ export class StellarOverlayComponent {
   readonly draggingV = signal(false);
   readonly draggingCol = signal(false);
   readonly copiedStore = signal<string | null>(null);
+  readonly savedState = signal<'idle' | 'saved' | 'error'>('idle');
 
   readonly activeIndex = computed(() => {
     const idx = this.selectedIndex();
@@ -643,6 +664,16 @@ export class StellarOverlayComponent {
   copyAllForAI(): void {
     const text = formatAllStoresForAI(this.stores());
     this.writeToClipboard(text, '__all__');
+  }
+
+  saveAllForAI(): void {
+    this.writer.save(this.stores()).then(() => {
+      this.savedState.set('saved');
+      setTimeout(() => this.savedState.set('idle'), 2500);
+    }).catch(() => {
+      this.savedState.set('error');
+      setTimeout(() => this.savedState.set('idle'), 2500);
+    });
   }
 
   private writeToClipboard(text: string, key: string): void {
