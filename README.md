@@ -34,10 +34,13 @@ nx build @hypertheory/stellar-ng-devtools
 nx build demo-ng
 nx build docs
 
-# Run tests
+# Run unit tests (Jasmine/Jest)
 nx test @hypertheory/sanitize
 nx test @hypertheory/stellar-ng-devtools
 nx test demo-ng
+
+# Run Playwright e2e tests (requires demo-ng dev server already running)
+nx e2e demo-ng
 ```
 
 ### The useful stuff
@@ -54,6 +57,43 @@ nx run-many --target=test
 # See the dependency graph in your browser
 nx graph
 ```
+
+### Playwright e2e
+
+The Playwright config lives at `apps/demo-ng/playwright.config.ts`.
+Tests are in `apps/demo-ng/e2e/`.
+
+```bash
+# Full run via Nx (starts dev server automatically if not already running)
+nx e2e demo-ng
+
+# Run directly via Playwright — faster if the dev server is already up
+npx playwright test --config=apps/demo-ng/playwright.config.ts
+
+# Run a single spec file
+npx playwright test --config=apps/demo-ng/playwright.config.ts e2e/sanitization.spec.ts
+
+# Run tests matching a name pattern
+npx playwright test --config=apps/demo-ng/playwright.config.ts --grep "trigger"
+
+# Interactive UI mode — run tests visually, step through, inspect snapshots
+npx playwright test --config=apps/demo-ng/playwright.config.ts --ui
+
+# Debug a specific test (pauses at each step, opens browser)
+npx playwright test --config=apps/demo-ng/playwright.config.ts --debug e2e/trigger.spec.ts
+
+# Show the HTML report from the last run
+npx playwright show-report dist/.playwright/apps/demo-ng/playwright-report
+```
+
+The four spec files and what they cover:
+
+| File | What it tests |
+|---|---|
+| `stellar-api.spec.ts` | `window.__stellarDevtools` API contract — shape, snapshot/history/diff |
+| `sanitization.spec.ts` | Every sanitization operator; raw secrets must never appear in output |
+| `trigger.spec.ts` | NgRx event type in trigger field, combined event+click format |
+| `ai-format.spec.ts` | AI readability — inferredShape, timestamps, no secrets in AI output |
 
 ### How caching works
 
