@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { RegisterOptions, StoreEntry } from './models';
+import { HttpEvent, RegisterOptions, StoreEntry } from './models';
 import { StellarRegistry } from './stellar-registry';
 import { Events } from '@ngrx/signals/events';
 
@@ -29,6 +29,9 @@ export class StellarRegistryService {
 
   private _stores = signal<StoreEntry[]>([]);
   readonly stores = this._stores.asReadonly();
+
+  private _httpEvents = signal<HttpEvent[]>([]);
+  readonly httpEvents = this._httpEvents.asReadonly();
 
   private lastClick: { label: string; time: number } | null = null;
   private lastEvent: { type: string; payload: unknown; time: number } | null = null;
@@ -65,6 +68,18 @@ export class StellarRegistryService {
       route: this.router?.url ?? null,
       trigger: this.recentTrigger(),
     });
+  }
+
+  captureContext(): string | undefined {
+    return this.recentTrigger();
+  }
+
+  recordHttpEvent(event: HttpEvent): void {
+    this._httpEvents.update(events => [...events.slice(-99), event]);
+  }
+
+  getHttpEvents(): HttpEvent[] {
+    return this._httpEvents();
   }
 
   private recentTrigger(): string | undefined {

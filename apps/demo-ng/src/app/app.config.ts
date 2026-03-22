@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideStellarDevtools, withNgrxSignalStoreTools } from '@hypertheory/stellar-ng-devtools';
+import { provideStellarDevtools, withNgrxSignalStoreTools, withHttpTrafficMonitoring } from '@hypertheory/stellar-ng-devtools';
 
 import { routes } from './app.routes';
 
@@ -10,6 +10,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideStellarDevtools(
       withNgrxSignalStoreTools(),
+      withHttpTrafficMonitoring(),
     ),
   ],
 };

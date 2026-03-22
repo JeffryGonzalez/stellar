@@ -3,11 +3,11 @@ import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { StellarRegistryService } from './stellar-registry.service';
 import { SnapshotWriterService } from './snapshot-writer.service';
-import { StateSnapshot } from './models';
+import { HttpEvent, StateSnapshot } from './models';
 import { computeDiff, DiffEntry, formatValue } from './diff.utils';
 import { formatStoreForAI, formatAllStoresForAI } from './format-for-ai';
 
-type OverlayMode = 'closed' | 'picking' | 'viewing';
+type OverlayMode = 'closed' | 'picking' | 'viewing' | 'http';
 type PanelView = 'state' | 'diff';
 
 const MIN_WIDTH = 360;
@@ -394,8 +394,140 @@ function highlightValue(value: unknown, indent: number): string {
       color: #f38ba8;
       border-color: #f38ba8;
     }
+
+    /* ── HTTP panel ──────────────────────────────────────────── */
+    .stellar-http-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px;
+    }
+
+    .stellar-http-empty {
+      color: #6c7086;
+      padding: 12px 4px;
+      font-size: 12px;
+    }
+
+    .stellar-http-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 5px 4px;
+      border-bottom: 1px solid #313244;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stellar-http-method {
+      font-weight: bold;
+      font-size: 11px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: #313244;
+      flex-shrink: 0;
+    }
+
+    .stellar-method-get    { color: #89b4fa; }
+    .stellar-method-post   { color: #a6e3a1; }
+    .stellar-method-put,
+    .stellar-method-patch  { color: #f9e2af; }
+    .stellar-method-delete { color: #f38ba8; }
+    .stellar-method-other  { color: #cdd6f4; }
+
+    .stellar-http-url {
+      flex: 1;
+      color: #cdd6f4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .stellar-http-status {
+      font-weight: bold;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .stellar-status-ok   { color: #a6e3a1; }
+    .stellar-status-warn { color: #f9e2af; }
+    .stellar-status-err  { color: #f38ba8; }
+
+    .stellar-http-duration {
+      color: #6c7086;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .stellar-http-trigger {
+      color: #89b4fa;
+      font-size: 10px;
+      width: 100%;
+      padding-left: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stellar-http-error {
+      color: #f38ba8;
+      font-size: 10px;
+      width: 100%;
+      padding-left: 2px;
+    }
+
+    .stellar-http-chip {
+      background: #1e1e2e;
+      color: #89b4fa;
+      border: 1px solid #45475a;
+      border-radius: 20px;
+      padding: 5px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s;
+      font-size: 12px;
+    }
+
+    .stellar-http-chip:hover { background: #313244; }
   `],
   template: `
+    @if (mode() === 'http') {
+      <div class="stellar-panel" [style.width.px]="panelWidth()" [style.height.px]="panelHeight()">
+
+        <div class="stellar-resize-v" [class.stellar-dragging]="draggingV()" (mousedown)="startResizeV($event)"></div>
+        <div class="stellar-resize-h" [class.stellar-dragging]="draggingH()" (mousedown)="startResizeH($event)"></div>
+
+        <div class="stellar-panel-header">
+          <span class="stellar-panel-title">HTTP Traffic</span>
+          <button class="stellar-icon-btn" (click)="goToPicker()">← stores</button>
+          <button class="stellar-icon-btn" (click)="close()">✕</button>
+        </div>
+
+        <div class="stellar-http-panel">
+          @if (httpEvents().length === 0) {
+            <div class="stellar-http-empty">No requests recorded yet.</div>
+          } @else {
+            @for (ev of httpEventsReversed(); track ev.id) {
+              <div class="stellar-http-row">
+                <span class="stellar-http-method" [class]="methodClass(ev.method)">{{ ev.method }}</span>
+                <span class="stellar-http-url" [title]="ev.url">{{ ev.url }}</span>
+                <span class="stellar-http-status" [class]="statusClass(ev.status)">
+                  {{ ev.status === 0 ? 'ERR' : ev.status }}
+                </span>
+                <span class="stellar-http-duration">{{ ev.duration }}ms</span>
+                @if (ev.trigger) {
+                  <span class="stellar-http-trigger">{{ ev.trigger }}</span>
+                }
+                @if (ev.error) {
+                  <span class="stellar-http-error">⚠ {{ ev.error }}</span>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+
     @if (mode() === 'viewing') {
       <div class="stellar-panel" [style.width.px]="panelWidth()" [style.height.px]="panelHeight()">
 
@@ -499,6 +631,11 @@ function highlightValue(value: unknown, indent: number): string {
             {{ store.name }}
           </button>
         }
+        @if (httpEvents().length > 0) {
+          <button class="stellar-http-chip" (click)="goToHttp()">
+            HTTP ({{ httpEvents().length }})
+          </button>
+        }
         @if (stores().length > 0) {
           <div class="stellar-copy-all-row">
             <button
@@ -527,6 +664,8 @@ export class StellarOverlayComponent {
   private writer = inject(SnapshotWriterService);
 
   readonly stores = this.registry.stores;
+  readonly httpEvents = this.registry.httpEvents;
+  readonly httpEventsReversed = computed<HttpEvent[]>(() => [...this.httpEvents()].reverse());
   readonly mode = signal<OverlayMode>('closed');
   readonly panelView = signal<PanelView>('state');
   readonly selectedStore = signal<string | null>(null);
@@ -654,6 +793,26 @@ export class StellarOverlayComponent {
     this.mode.set('picking');
   }
 
+  goToHttp(): void {
+    this.mode.set('http');
+  }
+
+  methodClass(method: string): string {
+    const m = method.toUpperCase();
+    if (m === 'GET')    return 'stellar-method-get';
+    if (m === 'POST')   return 'stellar-method-post';
+    if (m === 'PUT' || m === 'PATCH') return 'stellar-method-put';
+    if (m === 'DELETE') return 'stellar-method-delete';
+    return 'stellar-method-other';
+  }
+
+  statusClass(status: number): string {
+    if (status === 0)         return 'stellar-status-err';
+    if (status < 300)         return 'stellar-status-ok';
+    if (status < 500)         return 'stellar-status-warn';
+    return 'stellar-status-err';
+  }
+
   copyForAI(name: string): void {
     const entry = this.registry.getStore(name);
     if (!entry) return;
@@ -662,7 +821,7 @@ export class StellarOverlayComponent {
   }
 
   copyAllForAI(): void {
-    const text = formatAllStoresForAI(this.stores());
+    const text = formatAllStoresForAI(this.stores(), this.httpEvents());
     this.writeToClipboard(text, '__all__');
   }
 

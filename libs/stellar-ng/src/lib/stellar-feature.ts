@@ -2,6 +2,7 @@ import { EnvironmentProviders, Provider } from '@angular/core';
 
 export enum StellarFeatureKind {
   NgrxSignalStoreTools = 'NgrxSignalStoreTools',
+  HttpTrafficMonitoring = 'HttpTrafficMonitoring',
 }
 
 export interface StellarFeature<K extends StellarFeatureKind> {

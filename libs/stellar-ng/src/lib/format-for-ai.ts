@@ -1,4 +1,4 @@
-import { StoreEntry, StateSnapshot, ShapeMap, ShapeValue } from './models';
+import { StoreEntry, StateSnapshot, ShapeMap, ShapeValue, HttpEvent } from './models';
 
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
@@ -107,7 +107,33 @@ export function formatStoreForAI(entry: StoreEntry): string {
   return lines.join('\n');
 }
 
-export function formatAllStoresForAI(entries: StoreEntry[]): string {
-  if (entries.length === 0) return '*(no stores registered)*\n';
-  return entries.map(e => formatStoreForAI(e)).join('\n\n---\n\n');
+export function formatHttpEventsForAI(events: HttpEvent[]): string {
+  if (events.length === 0) return '## HTTP Traffic\n\n*(no requests recorded)*\n';
+
+  const lines: string[] = [];
+  lines.push('## HTTP Traffic');
+  lines.push('');
+  lines.push(`*${events.length} request(s), most recent first*`);
+  lines.push('');
+
+  for (const ev of [...events].reverse()) {
+    const time = new Date(ev.timestamp).toISOString().replace(/.*T/, '').replace(/\.\d{3}Z$/, ' UTC');
+    const statusLabel = ev.status === 0 ? 'ERR' : String(ev.status);
+    const triggerNote = ev.trigger ? ` — *${ev.trigger}*` : '';
+    lines.push(`**${ev.method}** \`${ev.url}\` → ${statusLabel} (${ev.duration}ms) ${time}${triggerNote}`);
+    if (ev.error) {
+      lines.push(`  ⚠ ${ev.error}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+export function formatAllStoresForAI(entries: StoreEntry[], httpEvents?: HttpEvent[]): string {
+  const storeSection = entries.length === 0
+    ? '*(no stores registered)*\n'
+    : entries.map(e => formatStoreForAI(e)).join('\n\n---\n\n');
+
+  if (!httpEvents || httpEvents.length === 0) return storeSection;
+  return storeSection + '\n\n---\n\n' + formatHttpEventsForAI(httpEvents);
 }

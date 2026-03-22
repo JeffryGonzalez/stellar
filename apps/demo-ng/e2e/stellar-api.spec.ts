@@ -116,7 +116,16 @@ test.describe('window.__stellarDevtools API', () => {
   });
 
   test('diff(name) returns from/to after state change', async ({ page }) => {
+    const before = await page.evaluate(() =>
+      (window as any).__stellarDevtools.snapshot('CounterStore')?.history.length ?? 0
+    );
+
     await page.click('button:has-text("+")');
+
+    await page.waitForFunction((prevLen: number) => {
+      const entry = (window as any).__stellarDevtools.snapshot('CounterStore');
+      return (entry?.history.length ?? 0) > prevLen;
+    }, before);
 
     const diff = await page.evaluate(() =>
       (window as any).__stellarDevtools.diff('CounterStore')

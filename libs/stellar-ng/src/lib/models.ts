@@ -28,3 +28,16 @@ export interface StoreEntry {
   typeDefinition?: string;
   history: StateSnapshot[];
 }
+
+export interface HttpEvent {
+  id: string;
+  timestamp: number;      // Date.now() at initiation
+  method: string;
+  url: string;
+  status: number;         // 0 = network error
+  ok: boolean;
+  duration: number;       // ms from initiation to response
+  responseBody?: unknown; // parsed JSON if content-type is application/json
+  error?: string;         // set on network failure
+  trigger?: string;       // captured from registry context at moment of call
+}

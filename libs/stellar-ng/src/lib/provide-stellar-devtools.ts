@@ -31,6 +31,7 @@ export function provideStellarDevtools(...features: AnyStellarFeature[]): Enviro
           return { from: h[h.length - 2], to: h[h.length - 1] };
         },
         save: () => writer.save(registry.getAllStores()),
+        http: () => registry.getHttpEvents(),
       };
     }),
   ]);
