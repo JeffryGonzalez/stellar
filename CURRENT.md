@@ -35,11 +35,17 @@ Updated at the end of every session via `/capture`.
 - **Trigger dedup fix** — 500ms → 50ms window in `recording.service.ts`. The 500ms window was merging rapid clicks on the same button label into one trigger node.
 - **Products demo a11y** — removed `[disabled]` from Add button; `add()` uses `Product-<timestamp>` fallback, doesn't clear name field, enabling rapid-click parallel request demos.
 - **MSW + outbox demo** — `ProductsStore` with add/update/delete, dead-letter queue, in-flight badge; `/products` route in demo app
+- **Self-describing recordings** — `RecordingSession` now carries `description` (compact LLM format explanation) and `storeContext` (store name → description for stores in the recording). `formatRecordingForAI()` emits markdown with header, store context, format, and graph JSON. "Copy for AI" button in timeline header.
+- **`⏺ Timeline` chip in picker** — `lastSession` signal on `RecordingService` persists the session for app lifetime; chip in picker navigates back to timeline at any time.
+- **Docs sprint** — `guides/using-stellar.md`, `guides/working-with-ai.md` (sample prompts including CodeTour generation), `explainers/pair-programming-with-ai.md` ("the description field is its seed syllable"), reference updated with `description`/`storeContext` fields, sample "Copy for AI" output in using-stellar.
+- **Showcase app (`/showcase`)** — three reproducible scenarios in demo-ng: outbox pattern, race condition (stale-closure bug + chaos mode), error path (forced 500s + chaos mode). Scenario landing page with all six planned scenarios as cards including the suggested AI prompt. MSW chaos infrastructure (`__mocks__/chaos.ts`, `/api/__dev/chaos`, `/api/__dev/reset`). `NaiveProductsStore` with intentional stale-closure bug for race condition demo.
+- **`docs/demo-plan.md`** — living inventory of all showcase scenarios with requirements, status, and shared infrastructure table.
+- **TDR: Designing reproducible demos** — `apps/docs/src/content/docs/explainers/designing-reproducible-demos.md`
 
 ## Next
-1. **Playwright tests for HTTP monitoring + describe()** — `http()` shape, `httpEventId` on snapshots, `describe()` output shape including `description` and `registeredAt`
-2. **Timeline Playwright tests** — recording → timeline mode; node count, edge count, HTTP bar rendering
-3. **Documentation sprint** — mechanics docs now the timeline is real
+1. **Playwright tests** — timeline mode activation, `description`/`storeContext` in recording output, "Copy for AI" button, `http()` shape, `describe()` output shape
+2. **Showcase scenarios: coming-soon three** — missing test coverage, story card verification, CodeTour generation (all infrastructure exists; need stores + components + sample story card)
+3. **Chaos mode reset on scenario navigation** — currently chaos persists across page navigations; should reset on leaving a scenario page
 
 ## Design questions open
 - WebSockets and SSE — parked until fetch is solid
@@ -48,6 +54,7 @@ Updated at the end of every session via `/capture`.
 - **Timing visibility / passive vs. active observer** — the 300ms `recentHttpEventId` window is a timing bet with no external visibility. If Angular's effect runs >300ms after the HTTP response, `httpEventId` is silently absent. Bigger question: should the devtools surface the *gap* between "HTTP response landed" and "state updated"? That gap is valuable performance information in its own right — not just a diagnostic for our causal linking. Don't solve yet; let it fester.
 
 ## Parked / not this sprint
+- **`/capture-scenario` skill** — after a debugging session where Stellar + AI found a bug, the skill extracts the generalizable pattern (what structural condition caused it, what the recording showed, what the fix was) and scaffolds a new scenario component following the established showcase template. Two artifacts: the skill prompt (~markdown file) and a scenario stub template. Near-term, low build cost. See `docs/demo-plan.md` for the longer version of the idea including the "LLM communal knowledge" angle (pattern library accessible via llms.txt — needs more thought on curation and hosting before building).
 - `withNgrxReduxStoreTools()` — classic NgRx/Store users have Redux DevTools; low demand signal
 - MCP server
 - `createSanitizer()` factory (Tier 3 custom aliases)

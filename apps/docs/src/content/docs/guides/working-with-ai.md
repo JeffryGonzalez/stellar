@@ -167,6 +167,32 @@ to specific things that happened in the sequence to make the explanation concret
 
 ---
 
+## Generating a code tour from a recording
+
+A recording captures the path the code actually took during a specific interaction — not the path a developer remembers, but the path that ran. Combined with `sourceHint` on each store, that path can be turned into a guided code walkthrough.
+
+This requires two things: `sourceHint` filled in on every store that participates in the recording (so the AI knows which files to look at), and a recording named after the user scenario rather than the default "recording".
+
+```
+[Paste Copy for AI output — named something like "customer-checkout-flow"]
+
+[Paste the contents of the store files listed in sourceHint]
+
+Generate a CodeTour file (.tours/checkout-flow.tour) that walks a new developer
+through the code that participated in this recording. Each step should correspond
+to a node in the causal graph, in chronological order. The description for each
+step should explain what happened at that point in the actual recorded session —
+not just what the code does in the abstract, but what it did in this interaction.
+```
+
+The output is a `.tours/*.tour` JSON file that [CodeTour](https://marketplace.visualstudio.com/items?itemName=vsls-contrib.codetour) renders as a guided walkthrough in VS Code. Each step points at the exact line of code that fired during the recorded interaction.
+
+The key distinction from a manually-written tour: the steps are grounded in a recording of actual execution. The causal edges give the order. The delta fields give the specific behavior to describe at each step. The tour reflects what the code *did*, not what someone thought it did.
+
+If stores are missing `sourceHint`, the AI knows what changed but not where. The recording becomes much less useful for navigation. Consider `sourceHint` load-bearing for this class of use cases, not optional metadata.
+
+---
+
 ## A note on what makes these prompts work
 
 Every prompt above shares a structure: data first, then question, then audience or constraint. The data is what makes the AI's answer specific rather than generic. Without the recording, an AI assistant asked "is there a race condition?" can only reason about code structure — it has to imagine possible sequences. With the recording, it can reason about the actual sequence that occurred.

@@ -19,6 +19,8 @@ import { StellarOverlayComponent } from '@hypertheory/stellar-ng-devtools';
              class="btn btn-ghost btn-sm">Sanitization</a>
           <a routerLink="/products" routerLinkActive="btn-active"
              class="btn btn-ghost btn-sm">Products</a>
+          <a routerLink="/showcase" routerLinkActive="btn-active"
+             class="btn btn-ghost btn-sm">Scenarios</a>
         </nav>
       </div>
 

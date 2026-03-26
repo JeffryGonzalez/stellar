@@ -1,4 +1,5 @@
 import { http, HttpResponse, delay } from 'msw';
+import { chaosMode } from './chaos';
 
 export interface ProductResponse {
   id: string;
@@ -27,6 +28,9 @@ export const productHandlers = [
 
   http.post('/api/products', async ({ request }) => {
     await delay(API_DELAY);
+    if (chaosMode === 'errors') {
+      return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
     const body = await request.json() as { name: string; price: number };
     const product: ProductResponse = {
       id: crypto.randomUUID(),
@@ -39,6 +43,9 @@ export const productHandlers = [
 
   http.put('/api/products/:id', async ({ params, request }) => {
     await delay(API_DELAY);
+    if (chaosMode === 'errors') {
+      return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
     const body = await request.json() as { name: string; price: number };
     products = products.map(p =>
       p.id === params['id'] ? { ...p, ...body } : p,
@@ -51,6 +58,9 @@ export const productHandlers = [
 
   http.delete('/api/products/:id', async ({ params }) => {
     await delay(API_DELAY);
+    if (chaosMode === 'errors') {
+      return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
     const exists = products.some(p => p.id === params['id']);
     if (!exists) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
     products = products.filter(p => p.id !== params['id']);
