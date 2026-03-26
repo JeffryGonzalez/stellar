@@ -42,6 +42,7 @@
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-playwright": "^1.6.2",
     "jsdom": "^28.0.0",
+    "msw": "^2.12.14",
     "ng-packagr": "^21.2.0",
     "nx": "22.6.1",
     "postcss": "^8.5.8",
@@ -53,5 +54,10 @@
   },
   "peerDependencies": {
     "@ngrx/signals": "^21.0.1"
+  },
+  "msw": {
+    "workerDirectory": [
+      "apps/demo-ng/public"
+    ]
   }
 }
