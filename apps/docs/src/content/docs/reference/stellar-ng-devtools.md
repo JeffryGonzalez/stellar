@@ -128,6 +128,8 @@ const session = window.__stellarDevtools.record.stop()  // returns RecordingSess
 
 `stop()` returns a `RecordingSession` — a directed graph with `nodes` (click, ngrx-event, http-request, http-response, state-snapshot) and `edges` (caused, initiated, resolved, produced). Arrays in state deltas are summarized to their length.
 
+When using the overlay's **⏺ Rec** / **⏹ Stop & Export** buttons, stopping a recording opens the **timeline view** in the panel before downloading. The timeline shows triggers, HTTP bars, and store snapshot dots with causal edges connecting them. The **↓ Export** button in the timeline header downloads the JSON. The **⏺ Timeline** chip in the picker returns to this view for the lifetime of the session.
+
 ---
 
 ## Recommended AI handoff workflow

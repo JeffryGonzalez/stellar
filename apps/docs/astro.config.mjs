@@ -35,6 +35,7 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Getting Started', slug: 'guides/getting-started' },
+						{ label: 'Using Stellar', slug: 'guides/using-stellar' },
 					],
 				},
 				{
