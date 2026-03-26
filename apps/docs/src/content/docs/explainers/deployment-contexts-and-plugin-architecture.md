@@ -35,10 +35,10 @@ We landed on `StellarFeature<K>` — a discriminated union type matching Angular
 **Rejected: just accepting `EnvironmentProviders[]`**
 Works mechanically but loses the discriminant. You can't validate inputs, can't detect duplicate plugins, and there's no vocabulary for what a feature *is*. The Angular pattern exists for good reasons.
 
-**Rejected: a `mode` string on `provideStellarDevtools`**
-`provideStellarDevtools({ mode: 'test' })` hardcodes the assumption that there are exactly N modes and that they're mutually exclusive. The plugin pattern is open-ended — `withHttpTrafficMonitoring()` doesn't care what other plugins are present.
+**Rejected: a `mode` string on `provideStellar`**
+`provideStellar({ mode: 'test' })` hardcodes the assumption that there are exactly N modes and that they're mutually exclusive. The plugin pattern is open-ended — `withHttpTrafficMonitoring()` doesn't care what other plugins are present.
 
-**The constraint that made it obvious:** each `withXxx()` carries its own config. If anything is baked in by default, its config has to go somewhere — either on the plugin or on `provideStellarDevtools`. Keeping the core empty and everything explicit avoids that entirely. The Angular idiom also means any Angular developer already knows how to read `provideStellarDevtools(withNgrxSignalStoreTools())` without documentation.
+**The constraint that made it obvious:** each `withXxx()` carries its own config. If anything is baked in by default, its config has to go somewhere — either on the plugin or on `provideStellar`. Keeping the core empty and everything explicit avoids that entirely. The Angular idiom also means any Angular developer already knows how to read `provideStellar(withNgrxSignalStoreTools())` without documentation.
 
 ## withNgrxReduxStoreTools() — deliberately not built
 

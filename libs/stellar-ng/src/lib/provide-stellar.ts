@@ -9,7 +9,7 @@ import { SnapshotWriterService } from './snapshot-writer.service';
 import { RecordingService } from './recording.service';
 import { AnyStellarFeature } from './stellar-feature';
 
-export function provideStellarDevtools(...features: AnyStellarFeature[]): EnvironmentProviders {
+export function provideStellar(...features: AnyStellarFeature[]): EnvironmentProviders {
   const featureProviders = features.flatMap(f => f.providers);
 
   return makeEnvironmentProviders([

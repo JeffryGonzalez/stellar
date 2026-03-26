@@ -65,7 +65,7 @@ const sanitizers = schema<BookState>({
   password:   redact(),
 });
 
-provideStellarDevtools(
+provideStellar(
   withNgrxSignalStoreTools(),
   withStateSanitization(sanitizers),
 )
@@ -130,7 +130,7 @@ cover it. This is opt-in and layered on top; the schema approach works fine with
 ## Relationship to the Plugin Architecture
 
 Sanitization ships as `withStateSanitization()` — a first-party plugin for
-`provideStellarDevtools()`. The operator functions (`redact`, `omit`, etc.) and the
+`provideStellar()`. The operator functions (`redact`, `omit`, etc.) and the
 `schema<T>()` helper would live in a **separate, general-purpose package**
 (`@hypertheory/sanitize` or similar) with zero dependency on the devtools. This means:
 

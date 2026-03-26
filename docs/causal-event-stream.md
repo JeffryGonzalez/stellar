@@ -199,7 +199,7 @@ This is a natural extension of what `withStellarDevtools` already does:
 
 ## The Proposed Package: `withPlaywrightObserver()`
 
-A plugin for `provideStellarDevtools` with:
+A plugin for `provideStellar` with:
 
 - Zero production footprint (tree-shaken unless explicitly included in test config)
 - Injected via `page.addInitScript()` in Playwright setup

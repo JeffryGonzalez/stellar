@@ -7,11 +7,11 @@ description: API reference for @hypertheory/stellar-ng-devtools — the Angular 
 
 ```ts
 // app.config.ts
-import { provideStellarDevtools, withHttpTrafficMonitoring } from '@hypertheory/stellar-ng-devtools';
+import { provideStellar, withHttpTrafficMonitoring } from '@hypertheory/stellar-ng-devtools';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideStellarDevtools(
+    provideStellar(
       withHttpTrafficMonitoring(),
     ),
   ],
@@ -49,7 +49,7 @@ Options passed to `withStellarDevtools(name, options)`.
 
 ## window.__stellarDevtools
 
-Available after `provideStellarDevtools()` runs. Designed as a stable API for AI coding assistants and browser console use.
+Available after `provideStellar()` runs. Designed as a stable API for AI coding assistants and browser console use.
 
 ### describe()
 

@@ -105,7 +105,7 @@ or equivalent). Angular is the first adapter, not the assumed host. Before addin
 `with-stellar-devtools.ts` that assumes Angular internals, ask whether it belongs in the core
 instead.
 
-**Plugin architecture.** The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)`
+**Plugin architecture.** The `provideStellar(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)`
 pattern is agreed on. Core is minimal and stable; plugins extend the `window.__stellarDevtools`
 surface with namespaced data. Each plugin carries its own config — this is the main argument
 against defaulting anything in.
@@ -211,7 +211,7 @@ and `autoRedactConfig()` are implemented and tested.
   - `options.description` — dev-mode warning if absent; appears in `describe()`
   - `options.sourceHint` — file path hint for AI consumers
   - `options.sanitize` — merged with `autoRedactConfig()`
-- `provideStellarDevtools(...features)` — sets up `window.__stellarDevtools`
+- `provideStellar(...features)` — sets up `window.__stellarDevtools`
 - `withHttpTrafficMonitoring()` — `window.fetch` interceptor with causal context capture
 - `StellarOverlayComponent` — overlay with state/diff/HTTP panels, ⏺ Rec / ⏹ Stop controls
 - `RecordingService` — `start()` / `stop()` → directed graph `RecordingSession` / `download()`

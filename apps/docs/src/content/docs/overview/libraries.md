@@ -8,7 +8,7 @@ description: An overview of the packages in the Stellar Devtools monorepo — wh
 The Angular devtools library. Provides:
 
 - `withStellarDevtools(name, options?)` — a NgRx Signal Store feature that hooks into store state and feeds it to the registry
-- `provideStellarDevtools()` — sets up the `window.__stellarDevtools` API and the in-memory registry
+- `provideStellar()` — sets up the `window.__stellarDevtools` API and the in-memory registry
 - `StellarOverlayComponent` — the visual overlay, mounted via `<stellar-overlay />` in your app template
 - `sanitizeConfig<T>(config)` — typed helper for declaring per-store sanitization rules
 

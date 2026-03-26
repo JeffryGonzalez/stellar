@@ -7,9 +7,9 @@ For design decisions and reasoning, see TDRs in `apps/docs/src/content/docs/expl
 
 ## Plugin architecture — where's the line?
 
-The `provideStellarDevtools(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on. The open question: which plugins, if any, are so universally needed that leaving them out feels like a footgun?
+The `provideStellar(withNgrxSignalStoreTools(), withHttpTrafficMonitoring(), ...)` pattern is agreed on. The open question: which plugins, if any, are so universally needed that leaving them out feels like a footgun?
 
-Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellarDevtools` itself. Keeping the core empty and everything explicit avoids that.
+Key argument against any defaults: each `withXXX()` carries its own config, so defaulting anything in forces opinionated defaults or pushes config onto `provideStellar` itself. Keeping the core empty and everything explicit avoids that.
 
 This also sets up a clean story for the three deployment contexts:
 - **Exploratory Dev** — `withNgrxSignalStoreTools()` etc. wired in `app.config.ts`
@@ -84,7 +84,7 @@ See backlog note in `overview.md` (pre-cleanup) for full design discussion.
 
 ## Production-mode gating of the overlay
 
-`provideStellarDevtools()` registers the API only; `StellarOverlayComponent` is the optional UI layer. Consumers wrap it with whatever environment guard fits their deployment model. `isDevMode()` inside the component serves as a safe default.
+`provideStellar()` registers the API only; `StellarOverlayComponent` is the optional UI layer. Consumers wrap it with whatever environment guard fits their deployment model. `isDevMode()` inside the component serves as a safe default.
 
 Visual overlay and `window.__stellarDevtools` API are independently controllable — some teams want the API in production for headless tooling (AI assistants, automated monitoring) without the visual overlay.
 

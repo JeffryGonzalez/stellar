@@ -20,15 +20,15 @@ npm install @hypertheory/stellar-ng-devtools
 
 ## Configure the provider
 
-In your `app.config.ts`, add `provideStellarDevtools()` to your providers:
+In your `app.config.ts`, add `provideStellar()` to your providers:
 
 ```typescript
 import { ApplicationConfig } from '@angular/core';
-import { provideStellarDevtools } from '@hypertheory/stellar-ng-devtools';
+import { provideStellar } from '@hypertheory/stellar-ng-devtools';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideStellarDevtools(),
+    provideStellar(),
     // ...your other providers
   ],
 };
