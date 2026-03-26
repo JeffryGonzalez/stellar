@@ -730,6 +730,11 @@ function highlightValue(value: unknown, indent: number): string {
             HTTP ({{ httpEvents().length }})
           </button>
         }
+        @if (lastRecording()) {
+          <button class="stellar-http-chip" (click)="mode.set('timeline')">
+            ⏺ Timeline
+          </button>
+        }
         @if (stores().length > 0) {
           <div class="stellar-copy-all-row">
             <button

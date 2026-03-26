@@ -30,11 +30,16 @@ Updated at the end of every session via `/capture`.
 - **Playwright tests for recording** — 21 tests: API surface, session shape, state capture, edge wiring (caused/resolved/produced), HTTP capture with mocked routes; `apps/demo-ng/e2e/recording.spec.ts`
 - **`withHttpTrafficMonitoring({ exclude })` option** — string (substring) or RegExp patterns; checked before trigger context capture so filtered requests don't consume the click buffer; `HttpTrafficMonitoringOptions` exported from public API. `StellarHttpDefaults.CommonIgnores` constant parked for later.
 - **Note:** e2e coverage for the exclude behavior needs a config-injection test harness we don't have yet. Logic is a trivial pure function; gap is acceptable for now.
+- **Timeline view in overlay** — stop recording → shows timeline instead of auto-downloading. Trigger lane (click=orange, ngrx-event=blue), HTTP lane (greedy row assignment, status-coloured bars, label inside if wide enough), per-store snapshot lanes (purple dots), dashed causal edges. Click any node for details. Export button downloads JSON.
+  - Key files: `libs/stellar-ng/src/lib/timeline.utils.ts`, `libs/stellar-ng/src/lib/stellar-timeline.component.ts`
+- **Trigger dedup fix** — 500ms → 50ms window in `recording.service.ts`. The 500ms window was merging rapid clicks on the same button label into one trigger node.
+- **Products demo a11y** — removed `[disabled]` from Add button; `add()` uses `Product-<timestamp>` fallback, doesn't clear name field, enabling rapid-click parallel request demos.
+- **MSW + outbox demo** — `ProductsStore` with add/update/delete, dead-letter queue, in-flight badge; `/products` route in demo app
 
 ## Next
 1. **Playwright tests for HTTP monitoring + describe()** — `http()` shape, `httpEventId` on snapshots, `describe()` output shape including `description` and `registeredAt`
-3. **Causal graph view in overlay** — proper visualization of the recording; outbox pattern or query cache as demo candidate
-4. ~~**`withHttpTrafficMonitoring()` options**~~ — done (see Just landed)
+2. **Timeline Playwright tests** — recording → timeline mode; node count, edge count, HTTP bar rendering
+3. **Documentation sprint** — mechanics docs now the timeline is real
 
 ## Design questions open
 - WebSockets and SSE — parked until fetch is solid
