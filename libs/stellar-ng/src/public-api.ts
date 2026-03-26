@@ -1,6 +1,7 @@
 export { withStellarDevtools } from './lib/with-stellar-devtools';
 export { withNgrxSignalStoreTools } from './lib/with-ngrx-signal-store-tools';
 export { withHttpTrafficMonitoring } from './lib/with-http-traffic-monitoring';
+export type { HttpTrafficMonitoringOptions } from './lib/with-http-traffic-monitoring';
 export type { StellarFeature, AnyStellarFeature, StellarFeatureKind } from './lib/stellar-feature';
 export { provideStellarDevtools } from './lib/provide-stellar-devtools';
 export { StellarOverlayComponent } from './lib/stellar-overlay.component';

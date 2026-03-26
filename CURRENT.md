@@ -28,16 +28,19 @@ Updated at the end of every session via `/capture`.
 
 ## Just landed (continued)
 - **Playwright tests for recording** — 21 tests: API surface, session shape, state capture, edge wiring (caused/resolved/produced), HTTP capture with mocked routes; `apps/demo-ng/e2e/recording.spec.ts`
+- **`withHttpTrafficMonitoring({ exclude })` option** — string (substring) or RegExp patterns; checked before trigger context capture so filtered requests don't consume the click buffer; `HttpTrafficMonitoringOptions` exported from public API. `StellarHttpDefaults.CommonIgnores` constant parked for later.
+- **Note:** e2e coverage for the exclude behavior needs a config-injection test harness we don't have yet. Logic is a trivial pure function; gap is acceptable for now.
 
 ## Next
 1. **Playwright tests for HTTP monitoring + describe()** — `http()` shape, `httpEventId` on snapshots, `describe()` output shape including `description` and `registeredAt`
 3. **Causal graph view in overlay** — proper visualization of the recording; outbox pattern or query cache as demo candidate
-4. **`withHttpTrafficMonitoring()` options** — URL filter patterns (don't capture `/assets/`, `/favicon.ico`)
+4. ~~**`withHttpTrafficMonitoring()` options**~~ — done (see Just landed)
 
 ## Design questions open
 - WebSockets and SSE — parked until fetch is solid
 - Outbox pattern demo — perfect case study for causal graph view; Jeff has an existing implementation
 - Angular-native Tanstack Query — `withQuery()` as a signal store feature; natural Stellar integration point; separate design session needed
+- **Timing visibility / passive vs. active observer** — the 300ms `recentHttpEventId` window is a timing bet with no external visibility. If Angular's effect runs >300ms after the HTTP response, `httpEventId` is silently absent. Bigger question: should the devtools surface the *gap* between "HTTP response landed" and "state updated"? That gap is valuable performance information in its own right — not just a diagnostic for our causal linking. Don't solve yet; let it fester.
 
 ## Parked / not this sprint
 - `withNgrxReduxStoreTools()` — classic NgRx/Store users have Redux DevTools; low demand signal
