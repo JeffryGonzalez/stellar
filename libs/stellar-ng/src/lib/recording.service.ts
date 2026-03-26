@@ -165,8 +165,9 @@ export class RecordingService {
         ...(delta ? { delta } : {}),
       });
 
-      if (snap.httpEventId && httpNodeMap.has(snap.httpEventId)) {
-        edges.push({ from: httpNodeMap.get(snap.httpEventId)!.respId, to: id, label: 'produced' });
+      const httpPair = snap.httpEventId ? httpNodeMap.get(snap.httpEventId) : undefined;
+      if (httpPair) {
+        edges.push({ from: httpPair.respId, to: id, label: 'produced' });
       } else if (snap.trigger) {
         const triggerId = findOrCreateTrigger(snap.trigger, snap.timestamp);
         edges.push({ from: triggerId, to: id, label: 'caused' });
