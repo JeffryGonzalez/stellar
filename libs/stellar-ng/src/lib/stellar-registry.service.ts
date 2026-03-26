@@ -89,10 +89,11 @@ export class StellarRegistryService {
 
   private recentHttpEventId(): string | undefined {
     const now = performance.now();
-    // 300ms window: response just arrived, Angular's effect scheduler hasn't run yet
-    return this.lastHttpEventId && now - this.lastHttpEventId.time < 300
-      ? this.lastHttpEventId.id
-      : undefined;
+    if (!this.lastHttpEventId || now - this.lastHttpEventId.time >= 300) return undefined;
+    // If a click happened after the HTTP response, it's a new user action — don't
+    // attribute the resulting state change to the previous response.
+    if (this.lastClick && this.lastClick.time > this.lastHttpEventId.time) return undefined;
+    return this.lastHttpEventId.id;
   }
 
   private recentTrigger(): string | undefined {

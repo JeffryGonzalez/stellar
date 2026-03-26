@@ -1,5 +1,6 @@
 # Jeff Log 
 
+2026-03-28 - Yesterday had a session with Claude where we talked about AI being able to open us humans to questions we just never would have asked before because of the economy of getting an answer to the the question blinded us to it. 
 
    
 

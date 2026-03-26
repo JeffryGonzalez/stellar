@@ -16,8 +16,8 @@ const seed: ProductResponse[] = [
 // In-memory store — resets on service worker restart (page reload)
 let products = [...seed];
 
-// Delay long enough to make in-flight overlap visible on the timeline
-const API_DELAY = 800;
+// Delay long enough to make in-flight overlap easy to trigger
+const API_DELAY = 1500;
 
 export const productHandlers = [
   http.get('/api/products', async () => {
