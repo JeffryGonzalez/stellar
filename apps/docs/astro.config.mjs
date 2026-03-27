@@ -11,7 +11,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Stellar Devtools',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/jeffrygonzalez/stellar' }],
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/hypertheory-labs/stellar' }],
 			customCss: ['./src/styles/theme.css'],
 			plugins: [
 				starlightLlmsTxt({

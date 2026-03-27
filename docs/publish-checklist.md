@@ -137,6 +137,12 @@ Cloudflare's own panel.
 
 `astro.config.mjs` already has `site: 'https://stellar.hypertheory-labs.dev'` set.
 
+### Deployment trigger
+
+Cloudflare Pages watches the **`public` remote** (`hypertheory-labs/stellar`), not `origin`
+(`JeffryGonzalez/stellar`). Pushing to `origin` alone will not trigger a deploy.
+Always run `/sync-public` after committing to get changes live.
+
 ### Cloudflare Pages gotchas (learned in production)
 
 - **Workers vs Pages:** The dashboard defaults to Workers when you click "Create". You want
