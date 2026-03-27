@@ -5,7 +5,7 @@
   "compilerOptions": {
     "declarationMap": false,
     "paths": {
-      "@hypertheory-labs/sanitize": ["../../dist/hypertheory/sanitize"]
+      "@hypertheory-labs/sanitize": ["../../dist/hypertheory-labs/sanitize"]
     }
   },
   "angularCompilerOptions": {
