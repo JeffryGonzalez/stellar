@@ -59,7 +59,8 @@ Use kebab-case, descriptive, no date prefix (the frontmatter records the session
 
 ## After writing the TDR
 
-Update `CURRENT.md` at the repo root to reflect the current state of work:
+Update `CURRENT.md` at the repo root to reflect the current state of work.
+(`CURRENT.md` is private — excluded from the public repo sync. That's intentional.)
 - Move anything just completed into "Just landed"
 - Update "In progress" to reflect what's actually being worked on
 - Reorder "Next" to reflect the agreed priority
