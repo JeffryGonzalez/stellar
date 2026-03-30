@@ -51,6 +51,8 @@ export interface StoreEntry {
   typeDefinition?: string;
   registeredAt: number;  // Date.now() at registration — exposes lazy-loading to AI consumers
   history: StateSnapshot[];
+  /** Overlay-only. Reads live raw state directly from the signal store. Never serialized, never exported. */
+  rawReader?: () => Record<string, unknown>;
 }
 
 // ── Recording session ─────────────────────────────────────────────────────────

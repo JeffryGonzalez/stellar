@@ -168,3 +168,65 @@ test.describe('Sanitization', () => {
     expect(raw).not.toContain('1983-07-14');                     // dateOfBirth
   });
 });
+
+// ── Blood/brain barrier — raw state cannot reach export surfaces ─────────────
+//
+// The peek affordance gives human developers a view of unsanitized state for
+// debugging. This block verifies that the raw reader is strictly internal to
+// the overlay and cannot be reached from window.__stellarDevtools.
+
+test.describe('Blood/brain barrier — raw state never reaches export surfaces', () => {
+  const RAW_SECRETS = [
+    'tok_live_8f3kQz9mNpR7wX2',   // sessionToken
+    'h0rse-b@ttery-st@ple',        // password
+    'sk-prod-4Xm9qRzLpN8wK3jY',   // apiKey
+    '4111111111114567',             // creditCard (full)
+    '555-12-6789',                  // ssn
+    '1983-07-14',                   // dateOfBirth
+  ];
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/sanitize');
+  });
+
+  test('rawReader is not accessible on window.__stellarDevtools', async ({ page }) => {
+    const keys = await page.evaluate(() => Object.keys((window as any).__stellarDevtools));
+    expect(keys).not.toContain('rawReader');
+  });
+
+  test('store entries in describe() do not expose rawReader', async ({ page }) => {
+    const described = await page.evaluate(() =>
+      JSON.stringify((window as any).__stellarDevtools.describe())
+    );
+    expect(described).not.toContain('rawReader');
+  });
+
+  test('history() contains no raw secret values', async ({ page }) => {
+    const serialized = await page.evaluate(() =>
+      JSON.stringify((window as any).__stellarDevtools.history('SensitiveDataStore'))
+    );
+    for (const secret of RAW_SECRETS) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+
+  test('diff() contains no raw secret values', async ({ page }) => {
+    // Trigger a second snapshot so diff() has something to compare
+    await page.evaluate(() => (window as any).__stellarDevtools.snapshot('SensitiveDataStore'));
+    const serialized = await page.evaluate(() =>
+      JSON.stringify((window as any).__stellarDevtools.diff('SensitiveDataStore'))
+    );
+    for (const secret of RAW_SECRETS) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+
+  test('describe() output contains no raw secret values', async ({ page }) => {
+    const serialized = await page.evaluate(() =>
+      JSON.stringify((window as any).__stellarDevtools.describe())
+    );
+    for (const secret of RAW_SECRETS) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+});

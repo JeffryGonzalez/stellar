@@ -269,6 +269,29 @@ function highlightValue(value: unknown, indent: number): string {
       word-break: break-all;
     }
 
+    .stellar-peek-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #2d1e0e;
+      border: 1px solid #f9e2af;
+      border-radius: 4px;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: #f9e2af;
+    }
+
+    .stellar-peek-banner span {
+      flex: 1;
+    }
+
+    .stellar-peek-active {
+      background: #2d1e0e !important;
+      color: #f9e2af !important;
+      border-color: #f9e2af !important;
+    }
+
     /* ── Diff view ───────────────────────────────────────────── */
     .stellar-diff-view {
       flex: 1;
@@ -640,6 +663,16 @@ function highlightValue(value: unknown, indent: number): string {
             <button [class.stellar-active]="panelView() === 'diff'" (click)="panelView.set('diff')">Diff</button>
           </div>
 
+          @if (peekAvailable()) {
+            <button
+              class="stellar-icon-btn"
+              [class.stellar-peek-active]="peekActive()"
+              (click)="togglePeek()"
+              title="Reveal unsanitized field values (display only — not exported)">
+              👁 Raw
+            </button>
+          }
+
           <button
             class="stellar-copy-btn"
             [class.stellar-copied]="copiedStore() === selectedStore()"
@@ -678,7 +711,15 @@ function highlightValue(value: unknown, indent: number): string {
 
           @if (panelView() === 'state') {
             <div class="stellar-state-view">
-              <pre [innerHTML]="selectedStateHtml()"></pre>
+              @if (peekActive()) {
+                <div class="stellar-peek-banner">
+                  <span>⚠ UNSANITIZED — raw store state — do not share</span>
+                  <button class="stellar-icon-btn" (click)="peekActive.set(false)">hide</button>
+                </div>
+                <pre [innerHTML]="peekStateHtml()"></pre>
+              } @else {
+                <pre [innerHTML]="selectedStateHtml()"></pre>
+              }
             </div>
           } @else {
             <div class="stellar-diff-view">
@@ -801,6 +842,7 @@ export class StellarOverlayComponent {
   readonly draggingCol = signal(false);
   readonly copiedStore = signal<string | null>(null);
   readonly savedState = signal<'idle' | 'saved' | 'error'>('idle');
+  readonly peekActive = signal(false);
 
   readonly activeIndex = computed(() => {
     const idx = this.selectedIndex();
@@ -824,6 +866,22 @@ export class StellarOverlayComponent {
     const snap = this.selectedSnapshot();
     if (!snap) return '';
     return this.sanitizer.bypassSecurityTrustHtml(highlightValue(snap.state, 0));
+  });
+
+  readonly peekAvailable = computed(() => {
+    const name = this.selectedStore();
+    if (!name) return false;
+    return !!this.stores().find(s => s.name === name)?.rawReader;
+  });
+
+  readonly peekStateHtml = computed<SafeHtml>(() => {
+    if (!this.peekActive()) return '';
+    const name = this.selectedStore();
+    if (!name) return '';
+    this.stores(); // reactive: re-run when store state updates
+    const raw = this.registry.getRawState(name);
+    if (!raw) return '';
+    return this.sanitizer.bypassSecurityTrustHtml(highlightValue(raw, 0));
   });
 
   readonly diffEntries = computed<DiffEntry[] | null>(() => {
@@ -905,7 +963,12 @@ export class StellarOverlayComponent {
   selectStore(name: string): void {
     this.selectedStore.set(name);
     this.selectedIndex.set(-1);
+    this.peekActive.set(false);
     this.mode.set('viewing');
+  }
+
+  togglePeek(): void {
+    this.peekActive.update(v => !v);
   }
 
   selectSnapshot(index: number): void {

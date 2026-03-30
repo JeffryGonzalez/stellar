@@ -15,6 +15,7 @@ export function withStellarDevtools(name: string, options: StellarDevtoolsOption
       onInit(store) {
         const registry = inject(StellarRegistryService);
         registry.register(name, options);
+        registry.registerRawReader(name, () => getState(store) as Record<string, unknown>);
 
         effect(() => {
           const raw = getState(store) as Record<string, unknown>;

@@ -64,6 +64,14 @@ export class StellarRegistryService {
     this.core.register(name, options);
   }
 
+  registerRawReader(name: string, reader: () => Record<string, unknown>): void {
+    this.core.registerRawReader(name, reader);
+  }
+
+  getRawState(name: string): Record<string, unknown> | null {
+    return this.core.getRawState(name);
+  }
+
   recordState(name: string, state: Record<string, unknown>): void {
     this.core.recordState(name, state, {
       route: this.router?.url ?? null,

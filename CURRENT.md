@@ -56,9 +56,16 @@ Updated at the end of every session via `/capture`.
 - **`docs/demo-plan.md`** — living inventory of all showcase scenarios with requirements, status, and shared infrastructure table.
 - **TDR: Designing reproducible demos** — `apps/docs/src/content/docs/explainers/designing-reproducible-demos.md`
 
+## Just landed (this session)
+- **Peek affordance** — complete. `rawReader` on `StoreEntry`, registered in `withStellarDevtools`, called on-demand by overlay. "👁 Raw" button + amber banner in viewing mode. `rawReader` unreachable from `window.__stellarDevtools` by construction.
+- **`registerRawReader()` fix** — added `notify()` call so Angular's signal graph picks up the `rawReader` mutation
+- **Blood/brain barrier tests** — new `describe` block in `sanitization.spec.ts`: `rawReader` not on window surface, `describe()` / `history()` / `diff()` contain no raw secret values
+- **TDR: Peek affordance** — `explainers/peek-affordance-for-sanitized-fields.md`
+- **TDR: Testing a security boundary** — `explainers/testing-a-security-boundary.md`; open/closed world testing philosophy and where the real guarantee lives
+
 ## Next
 1. **CONTRIBUTORS.md** — needed before NgRx team invite (~2026-04-03). Contribution workflow, branching, PR expectations.
-2. **CONTRIBUTORS.md** — needed before NgRx team invite (~2026-04-03). Contribution workflow, branching, PR expectations.
+2. **Run Playwright suite on Mac** — barrier tests written but not yet verified; headless Ubuntu server missing display libs
 3. **Playwright tests** — timeline mode activation, `description`/`storeContext` in recording output, "Copy for AI" button, `http()` shape, `describe()` output shape
 4. **Showcase scenarios: coming-soon three** — missing test coverage, story card verification, CodeTour generation
 5. **Chaos mode reset on scenario navigation** — chaos persists across page navigations; should reset on leaving a scenario

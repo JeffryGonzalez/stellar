@@ -65,6 +65,18 @@ export class StellarRegistry {
     this.notify();
   }
 
+  registerRawReader(name: string, reader: () => Record<string, unknown>): void {
+    const entry = this.stores.get(name);
+    if (entry) {
+      entry.rawReader = reader;
+      this.notify();
+    }
+  }
+
+  getRawState(name: string): Record<string, unknown> | null {
+    return this.stores.get(name)?.rawReader?.() ?? null;
+  }
+
   unregister(name: string): void {
     this.stores.delete(name);
     this.notify();

@@ -24,6 +24,11 @@ The most valuable things to extract:
    key insight that unlocked the direction. Name it explicitly.
 4. **What we're consciously deferring** — and the condition under which we'd
    revisit it.
+5. **Testing philosophy decisions** — if the session included discussion of
+   *what kind of guarantee* a test provides (not just what it tests), capture
+   that. The distinction between a closed-world regression test and an
+   open-world structural guarantee is exactly the kind of reasoning that
+   doesn't survive in the test file itself.
 
 Do not include:
 - Implementation details that are visible in the code
