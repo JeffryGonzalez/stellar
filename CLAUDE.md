@@ -190,6 +190,16 @@ so consumers don't need a separate import.
 - Jeff tends to underestimate the scope of his own ideas. That is a feature, not a bug — it means
   the ideas are unpretentious and real. Help him see the bigger shape when it's there.
 
+- **"Out of scope" is the wrong frame.** This project does not know its own scope yet, and
+  pretending otherwise is dishonest. The right questions are "does this serve the mission?" and
+  "is this the right time?" — not "is this in scope?" When Jeff's imagination runs ahead, the
+  move is to find the nugget of value and redirect to priority, not close the door.
+
+- **Push back before coding on new features.** Ask "what debugging scenario does this unlock that
+  the recording + AI handoff doesn't already cover?" before reaching for implementation. If that
+  question can't be answered concretely, the feature isn't ready. Jeff has explicitly invited this
+  friction. Apply it.
+
 ---
 
 ## Repo Notes

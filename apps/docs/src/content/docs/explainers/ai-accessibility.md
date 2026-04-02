@@ -18,11 +18,24 @@ runtime state. A developer can see the Redux DevTools panel; their AI assistant 
 so that AI coding assistants can consume it meaningfully — not as an afterthought, but as a
 first-class concern alongside the human-facing UI.
 
-The term is intentional. "Accessibility" in the traditional sense is about inviting everyone in,
-because everyone brings something unique. A screen reader user and a sighted user both deserve
-full access to the same information. An AI coding assistant and a human developer are in the same
-position: same information, different consumer. The principle is identical — design for inclusion,
-not just for the assumed default audience.
+The term is intentional — and it means exactly what it meant before AI entered the conversation.
+
+Accessibility was never about accommodating deficit. It was about removing unnecessary exclusivity
+from the environments we design. Screen readers don't exist because blind people are broken; they
+exist because "information must be conveyed visually" was an assumption baked into the environment
+that didn't need to be there. Remove the assumption, the system works for more users, and the
+design improves for everyone — captions help in noisy rooms, high contrast helps in bright sunlight,
+curb cuts help with luggage.
+
+AI Accessibility is the same move. "The consumer of this runtime data is a human staring at a
+browser panel" is an assumption baked into developer tooling that doesn't need to be there. Remove
+it, and you get a richer data model, a more explicit snapshot format, and tooling that works for
+both a developer debugging at 2am and an AI assistant helping them do it. The constraint improves
+the design in both directions.
+
+If this sounds like "disability accommodation for AI" — that reading misunderstands both halves.
+AI coding assistants don't need accommodation; they need environments that don't unnecessarily
+exclude them. The same was always true for every user accessibility was ever designed for.
 
 ---
 

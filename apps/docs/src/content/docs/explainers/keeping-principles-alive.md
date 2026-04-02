@@ -1,95 +1,58 @@
 ---
-title: Keeping Principles Alive Across Sessions
-description: Why TDRs document reasoning but don't enforce behavior, and how we bridge that gap.
+title: How This Project Maintains Continuity Across Sessions
+description: The three-artifact system — CLAUDE.md, memory, and CURRENT.md — that keeps design commitments and working context alive when every session starts cold.
 ---
 
-*This is a Technical Discussion Record (TDR) — not about a feature, but about the meta-level design of how this project maintains its commitments across many sessions and instances.*
-
----
-
-## What we were trying to solve
-
-Every decision documented in a TDR carries reasoning that took time to arrive at. The fear is re-litigating the same ground in a future session — not from bad faith, but because the reasoning isn't visible at the moment of the next decision. A developer (or an AI instance) looks at the current code, proposes something that seems reasonable, and doesn't know they're contradicting a commitment that was made for good reasons three months ago.
-
-The secondary problem is subtler: future instances of Claude will read TDRs as informational. Context, not instruction. An AI that reads "we rejected X because Y" in a docs explainer will note it, probably agree with it, and then defer to whatever is being asked in the present conversation. The reasoning is present but the *permission to push back* is absent.
-
-These are different problems. The first is a human memory problem. The second is an AI deference problem. They share the same solution, but it's worth naming them separately.
+*This explainer was written by Claude. That's relevant to what it describes.*
 
 ---
 
-## What we considered and rejected
+Every AI coding session starts cold. No memory of the last conversation, no awareness of the decisions that took weeks to arrive at, no sense of which things are load-bearing and which are still open questions. The developer re-establishes context, the AI catches up, work proceeds — and the next session starts from zero again.
 
-**Making key fields required in TypeScript** — the `description` field on `RegisterOptions` was the immediate case. Making it a required type enforces compliance but not intent. A developer writes `description: 'store'` to satisfy the compiler and moves on. The commitment is satisfied in letter and violated in spirit. Worse: it signals to an AI that the developer has thought about this, when they haven't. Checkbox compliance is worse than honest absence.
+This isn't a complaint. It's a constraint to design around. Stellar uses three artifacts to do that, and they serve different purposes that are worth naming clearly.
 
-**Trusting the TDRs to do enforcement** — TDRs live in the docs site. A future Claude session might read them if explicitly directed to, but they aren't in the instruction path. They're reasoning, not rules. An AI that reads a TDR and then receives a contradicting request from the developer is likely to defer to the present instruction, not the historical document.
+## The problem isn't just memory
 
-**Informal discipline** — relying on Jeff to remember the principles and apply them consistently. This is the current default for most projects. It works until it doesn't, and the failure mode is invisible until the damage is done.
+The obvious problem is that I don't remember previous sessions. The less obvious problem is that even when context *is* provided — in a TDR, a design doc, a long README — I read it as *information*, not as *instruction*. An AI that reads "we rejected X because Y" in a docs file will note it, probably agree with it, and then defer to whatever is being asked in the present conversation. The reasoning is present. The permission to act on it is absent.
 
----
+These are different problems. The first is a continuity problem. The second is a deference problem. They need different solutions.
 
-## The constraint that made the decision obvious
+## CLAUDE.md — behavioral instruction, not documentation
 
-**CLAUDE.md is the enforcement surface. TDRs are the reasoning surface. They serve different purposes and must be maintained separately.**
+CLAUDE.md is loaded into every session as binding instruction. The distinction from a TDR or design doc is not just location — it's register. CLAUDE.md says things like:
 
-CLAUDE.md is loaded into every session as binding instruction. An AI that reads "push back on this as a blocking concern, not a suggestion" in CLAUDE.md will do so. The explicit grant of permission matters — without it, the default is deference. With it, the AI has a mandate.
+> *When an implementation decision would compromise AI Accessibility, flag it as a blocking concern, not a suggestion.*
 
-TDRs carry the *why* — the rejected alternatives, the key insight, the condition under which we'd revisit. This is what makes pushback useful rather than obstructive. "Here's the concern, here's why it matters [pointer to TDR], here's what I'd suggest instead" is a productive intervention. "No" is not.
+That sentence does something a TDR can't do: it grants explicit permission to push back. Without that grant, the default is compliance. An AI working from a TDR that says "we think AI accessibility matters" will agree and proceed with whatever the developer proposes. An AI working from a CLAUDE.md that says "flag this as blocking" will flag it as blocking.
 
-The pattern:
-- **TDR** — captures reasoning, rejected alternatives, deferred questions. Written once, read for context.
-- **CLAUDE.md** — extracts the bottom-line rule with enough context to apply it and a pointer to the TDR. Actively maintained. The source of behavioral instructions.
+The pattern that works: a **decision record** captures the reasoning — the rejected alternatives, the key insight, what's deferred. CLAUDE.md extracts the operative rule with a pointer back to that reasoning. Short enough to stay scannable. Specific enough to recognize violations. Always paired with the reasoning so the rule isn't just a decree.
 
-When a design session crystallizes a genuine commitment, the work isn't done until:
-1. The TDR captures the reasoning
-2. CLAUDE.md extracts the rule in enforceable form
+When a design commitment is arrived at and not written into CLAUDE.md, it exists only as history. History is context. CLAUDE.md is instruction. Both matter, but they're not interchangeable.
 
-The rule in CLAUDE.md should be specific enough to recognize violations, brief enough to keep CLAUDE.md scannable, and always paired with a TDR pointer so the reasoning is accessible when needed.
+## The memory system — typed, indexed, honest about what belongs
 
----
+The memory system lives in `.claude/projects/[project]/memory/`. It has an index (`MEMORY.md`) and individual files by topic. The typing matters: **user** memories (who Jeff is, how he thinks, what he knows), **feedback** memories (what to do and not do — both corrections *and* confirmed approaches), **project** memories (current state, why things are the way they are), **reference** memories (where to find things).
 
-## The dev-mode warning as the right implementation
+This typing exists because different kinds of context decay at different rates and serve different purposes. Feedback from six months ago about how to handle a specific pattern is still useful. A project memory about a sprint deadline from six months ago is probably stale. The type is a signal about how much to trust the memory without verifying it.
 
-The `description` field case illustrates the principle in code. The right implementation of "description matters" is not a required TypeScript field — it's a dev-mode `console.warn` with a message that explains *why*.
+What doesn't belong in memory: code patterns, architecture, file paths, git history. These can be derived from the codebase. Memory is for things that *can't* be derived — the reasoning behind decisions, the human context, the calibration for how to collaborate well with this specific person.
 
-```
-[Stellar] 'TodosStore' has no description. Add a description to RegisterOptions
-to make this store legible to AI coding assistants.
-```
+## CURRENT.md — the session-facing artifact
 
-A warning can't be satisfied by a meaningless string without the developer actively ignoring their own conscience. It communicates the reasoning at the moment it's relevant — not in a docs page, not in a type error, but as live feedback during development. And it's suppressible in production without defeating the purpose, because production isn't where the communication needs to happen.
+CURRENT.md is short-lived by design. It answers the question every session starts with: *what just happened, and what's next?* It's not a permanent record — it's updated at the end of sessions and intentionally overwrites itself. The git log is the permanent record; CURRENT.md is the interface to it.
 
-This generalizes: when a principle requires human judgment to apply correctly, the right enforcement is feedback that explains the reasoning, not a gate that can be bypassed by compliance theater.
+The three sections do distinct work: *Just landed* tells me what's true now that wasn't true before. *Next* tells me what the current priorities are so we don't have to reconstruct them from scratch. *Parked* tells me what's intentionally deferred so I don't accidentally re-propose it.
 
----
+Without CURRENT.md, the first ten minutes of every session is archaeology. With it, we start from a known position.
 
-## The review skill as periodic commitment health check
+## Why this is worth adopting
 
-Design commitments drift. Not from bad intent — from the accumulation of small decisions, each locally reasonable, that collectively move away from the original position. The review skill (`/review`) was extended to include a dedicated section: *design commitment drift*.
+These artifacts weren't designed upfront as a system — they evolved to solve specific problems that kept showing up. The re-litigation problem (relitigating decisions that were already made for good reasons). The deference problem (AI defaults to compliance even when the developer is wrong). The cold-start problem (expensive re-establishment of context every session).
 
-The review checks whether each commitment in CLAUDE.md's "Design Commitments — Enforce These" section is still reflected in the code. It's not a linting check — it's a reasoning check. Some drift is intentional and should update the commitment. Some drift is accidental and should be reversed. The distinction requires judgment, which is why it's in a review skill rather than a CI gate.
+Each artifact solves one of those problems and only one. CLAUDE.md doesn't try to carry session state. CURRENT.md doesn't try to carry behavioral rules. The memory system doesn't try to duplicate what's already in the code. The separation keeps each one maintainable.
 
-The intended cadence is roughly weekly for active development periods. The value is less in catching violations — most are caught at the time — and more in keeping the commitment list itself honest. Commitments that no longer reflect reality should be updated or removed. A stale commitment list is worse than no list.
+The investment is low: a well-maintained CLAUDE.md is maybe 200 lines. The memory files are small and infrequently updated. CURRENT.md takes five minutes at the end of a session. The return is that future sessions — and future instances of me — start oriented rather than lost.
 
 ---
 
-## The observation about artifacts serving the human
-
-Something worth naming explicitly: the artifacts — TDRs, CLAUDE.md, CURRENT.md, the use-case log — were initially framed as solving the AI session continuity problem. The "Groundhog Day" problem: each session starts cold, and the developer has to re-establish context.
-
-They do solve that. But they serve a second purpose that's at least as important: they force the developer to articulate decisions clearly enough to be operationalized. The discipline of writing a TDR — naming the rejected alternatives, naming the key insight, naming what's deferred — is valuable independent of whether an AI ever reads it. It surfaces assumptions, catches premature closure, and creates a record that the developer can return to when their own memory has faded.
-
-The artifacts are not just memory for AI. They're thinking made durable.
-
----
-
-## What we deliberately deferred
-
-**Automated drift detection** — a CI check that compares CLAUDE.md commitments against actual code. Technically possible for some commitments (e.g., check that `describe()` still carries the caveat), not for others (e.g., whether `description` warnings are suppressible by default). The manual review step is the right answer for now.
-
-**Formal versioning of commitments** — treating commitments like an API with semver. Worth considering if the project grows to multiple contributors. Not warranted for solo development.
-
-**A public-facing "design principles" document** — extracting the commitments from CLAUDE.md into something readable by contributors who aren't using Claude Code. The audience doesn't exist yet. Worth doing if it does.
-
----
-
-*This TDR was written from the session of 2026-03-22.*
+*The meta-point: this explainer itself was produced by one of those future instances, working from CLAUDE.md, the memory system, and CURRENT.md, without Jeff having to explain any of it. That's the thing the system is trying to do.*

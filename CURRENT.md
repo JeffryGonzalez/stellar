@@ -57,11 +57,11 @@ Updated at the end of every session via `/capture`.
 - **TDR: Designing reproducible demos** — `apps/docs/src/content/docs/explainers/designing-reproducible-demos.md`
 
 ## Just landed (this session)
-- **Peek affordance** — complete. `rawReader` on `StoreEntry`, registered in `withStellarDevtools`, called on-demand by overlay. "👁 Raw" button + amber banner in viewing mode. `rawReader` unreachable from `window.__stellarDevtools` by construction.
-- **`registerRawReader()` fix** — added `notify()` call so Angular's signal graph picks up the `rawReader` mutation
-- **Blood/brain barrier tests** — new `describe` block in `sanitization.spec.ts`: `rawReader` not on window surface, `describe()` / `history()` / `diff()` contain no raw secret values
-- **TDR: Peek affordance** — `explainers/peek-affordance-for-sanitized-fields.md`
-- **TDR: Testing a security boundary** — `explainers/testing-a-security-boundary.md`; open/closed world testing philosophy and where the real guarantee lives
+- **Explainer cleanup** — 22 explainers sorted into three buckets; 5 removed (general philosophy → blog), 1 trimmed (`llm-legible-documentation`), `keeping-principles-alive` replaced with concrete three-artifact continuity system doc
+- **Blog posts (8)** — extracted from explainers + new: `keeping-principles-alive`, `friction-cost-and-collaboration`, `pair-programming-with-ai`, `clean-code-for-ai`, `llm-legible-documentation`, `library-ai-context`, `humans-txt`, `designing-for-two-audiences`, `stop-giving-your-ai-a-role`
+- **`docs/` cleanup** — removed 11 historical artifacts (sanitation prototypes, early session notes, superseded design docs, promoted-to-explainer duplicates)
+- **AI Accessibility reframe** — third paragraph of `ai-accessibility.md` now makes explicit: accessibility was never about deficit, always about removing unnecessary exclusivity; says the quiet part loud
+- **TDR: Documentation architecture** — `explainers/documentation-architecture.md`; three-bucket content model and reasoning
 
 ## Next
 1. **CONTRIBUTORS.md** — needed before NgRx team invite (~2026-04-03). Contribution workflow, branching, PR expectations.
@@ -85,3 +85,4 @@ Updated at the end of every session via `/capture`.
 - **Bug: panel clips at high browser zoom** — good first GitHub issue
 - Tree view for deeply nested state
 - **OpenTelemetry adapter** — RecordingSession → OTel trace export. Our directed graph is richer than OTel's tree (multi-cause nodes don't map to single parent_id), so the right move is an adapter, not aligning the data model. Worth asking around on demand before building. Mapping: RecordingSession → Trace, http-request+response pair → CLIENT span, state-snapshot/click/ngrx-event → INTERNAL spans.
+- **Session replay via HTTP re-injection** — a `withSessionRecording` that captures sanitized request/response bodies and generates MSW handlers, letting the app re-derive state from real inputs. Better framing than "time travel": the cause, not the output. Sanitization of response bodies is load-bearing. Parked pending community signal — candidate for a GitHub discussion. TDR: `explainers/time-travel-and-session-replay.md`.
