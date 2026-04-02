@@ -57,18 +57,25 @@ Updated at the end of every session via `/capture`.
 - **TDR: Designing reproducible demos** — `apps/docs/src/content/docs/explainers/designing-reproducible-demos.md`
 
 ## Just landed (this session)
-- **Explainer cleanup** — 22 explainers sorted into three buckets; 5 removed (general philosophy → blog), 1 trimmed (`llm-legible-documentation`), `keeping-principles-alive` replaced with concrete three-artifact continuity system doc
-- **Blog posts (8)** — extracted from explainers + new: `keeping-principles-alive`, `friction-cost-and-collaboration`, `pair-programming-with-ai`, `clean-code-for-ai`, `llm-legible-documentation`, `library-ai-context`, `humans-txt`, `designing-for-two-audiences`, `stop-giving-your-ai-a-role`
-- **`docs/` cleanup** — removed 11 historical artifacts (sanitation prototypes, early session notes, superseded design docs, promoted-to-explainer duplicates)
-- **AI Accessibility reframe** — third paragraph of `ai-accessibility.md` now makes explicit: accessibility was never about deficit, always about removing unnecessary exclusivity; says the quiet part loud
-- **TDR: Documentation architecture** — `explainers/documentation-architecture.md`; three-bucket content model and reasoning
+- **Explainer cleanup** — 22 → 17 explainers; 5 removed (general philosophy → blog), 1 trimmed, `keeping-principles-alive` replaced with three-artifact continuity doc
+- **Blog posts (9)** — extracted from explainers + new originals; `stop-giving-your-ai-a-role`, `designing-for-two-audiences`, `pair-programming-with-ai` among them; blog post `making-video-legible-to-ai` added this session
+- **`docs/` cleanup** — 11 historical artifacts removed
+- **AI Accessibility reframe** — `ai-accessibility.md` now explicit: accessibility = removing unnecessary exclusivity, never about deficit
+- **NgRx Events async demo** — `BookSearchEventsStore` + `/events` route; `withReducer` + `withEventHandlers` + debounce/switchMap against Open Library API
+- **CONTRIBUTORS.md** — philosophy-first, non-negotiables named
+- **89/89 Playwright tests passing** — verified on Ubuntu headless; barrier tests confirmed
+- **Dependabot alerts assessed** — all dev toolchain, zero published package risk; fix plan: `npm audit fix` + `ng update` tomorrow with pipeline work
+- **TDR: Documentation architecture** — `explainers/documentation-architecture.md`
+- **TDR: NgRx Events integration** — `explainers/ngrx-events-integration.md`; what the recording revealed, causal gap, future Dispatcher integration point
+- **Demo video live** — Vimeo (1179648231); embedded on docs landing page with timecoded chapter guide and GPT-5.4 testimonial blurb
+- **`reference/demo-video.md`** — timecoded AI-legible description converted from DaVinci Resolve EDL; GPT-5.4 responses preserved verbatim; auto-promoted in `llms.txt` via `reference/` autogenerate
+- **TDR: Video legibility** — `explainers/video-legibility.md`; placement rationale, format decision, why GPT-5.4 responses are preserved verbatim
 
 ## Next
-1. **CONTRIBUTORS.md** — needed before NgRx team invite (~2026-04-03). Contribution workflow, branching, PR expectations.
-2. **Run Playwright suite on Mac** — barrier tests written but not yet verified; headless Ubuntu server missing display libs
-3. **Playwright tests** — timeline mode activation, `description`/`storeContext` in recording output, "Copy for AI" button, `http()` shape, `describe()` output shape
-4. **Showcase scenarios: coming-soon three** — missing test coverage, story card verification, CodeTour generation
-5. **Chaos mode reset on scenario navigation** — chaos persists across page navigations; should reset on leaving a scenario
+1. **CI/CD pipeline + `ng update`** — GitHub Actions workflows drafted in `docs/publish-checklist.md`; copy-paste job. Fix Dependabot chain at same time.
+2. **Playwright tests** — `/events` route coverage; timeline mode; "Copy for AI" button; chaos mode reset on navigation
+3. **Showcase scenarios: coming-soon three** — missing test coverage, story card verification
+4. **Testimonials page** — build when 4–5 quotes collected; GPT-5.4 quote captured; GPT-5 quote from blog post captured
 
 ## Design questions open
 - WebSockets and SSE — parked until fetch is solid

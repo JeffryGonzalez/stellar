@@ -16,17 +16,60 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-<CardGrid stagger>
+## See it in action
+
+<div style="padding:56.25% 0 0 0;position:relative;">
+  <iframe
+    src="https://player.vimeo.com/video/1179648231?h=8abd44b684&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479"
+    frameborder="0"
+    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+    referrerpolicy="strict-origin-when-cross-origin"
+    style="position:absolute;top:0;left:0;width:100%;height:100%;"
+    title="StellarDevTools"
+  ></iframe>
+</div>
+<script src="https://player.vimeo.com/api/player.js"></script>
+**Play along** — the demo above runs against the [live demo
+app](https://stellar-demo.hypertheory-labs.dev). Open it in another tab and follow along.
+
+> "In practice, it shortens the gap between 'what happened' and 'where is that implemented.'"
+> — GPT-5
+
+### What's in the video
+
+**State inspection**
+
+- `00:04` — Opening the overlay
+- `00:28` — Picking a store, watching state update live
+- `00:41` — Reading a diff
+
+**HTTP & causality**
+
+- `01:02` — Making a fetch request (Outbox)
+- `01:50` — The causal link between HTTP response and state change
+
+**AI handoff**
+
+- `02:25` — Copy for AI
+- `2:43` — Handing the snapshot to an AI assistant
+
+---
+
+<CardGrid>
   <Card title="NgRx Signal Store Devtools" icon="laptop">
-    Inspect, diff, and export store state from inside your running app — no browser extension required.
+    Inspect, diff, and export store state from inside your running app — no browser extension
+    required.
   </Card>
   <Card title="State Sanitization" icon="shield">
-    Redact sensitive values before they reach the overlay, logs, or an AI assistant. Automatic for common fields; fully configurable for everything else.
+    Redact sensitive values before they reach the overlay, logs, or an AI assistant. Automatic for
+    common fields; fully configurable for everything else.
   </Card>
   <Card title="AI-First Design" icon="star">
-    State snapshots, history, and diffs are structured for AI consumption, not just human reading. The `window.__stellarDevtools` API is a stable contract.
+    State snapshots, history, and diffs are structured for AI consumption, not just human reading.
+    The `window.__stellarDevtools` API is a stable contract.
   </Card>
   <Card title="In-Browser Overlay" icon="puzzle">
-    Runs inside your app, not as a browser extension. Mount it with a single component tag; remove it without a trace.
+    Runs inside your app, not as a browser extension. Mount it with a single component tag; remove
+    it without a trace.
   </Card>
 </CardGrid>
