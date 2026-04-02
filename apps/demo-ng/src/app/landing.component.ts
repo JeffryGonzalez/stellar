@@ -110,6 +110,13 @@ import { RouterLink } from '@angular/router';
             <p class="text-xs text-base-content/50">Safe AI export</p>
           </div>
         </a>
+        <a routerLink="/events"
+           class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer">
+          <div class="card-body py-3 px-4">
+            <p class="font-medium text-sm">Events</p>
+            <p class="text-xs text-base-content/50">Async event chain</p>
+          </div>
+        </a>
         <a routerLink="/ai-collaboration"
            class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer">
           <div class="card-body py-3 px-4">

@@ -3,6 +3,7 @@ import { LandingComponent } from './landing.component';
 import { HomeComponent } from './home.component';
 import { SensitiveDataComponent } from './sensitive-data.component';
 import { ProductsComponent } from './products.component';
+import { BookSearchEventsComponent } from './book-search-events.component';
 import { showcaseRoutes } from './showcase/showcase.routes';
 
 export const routes: Routes = [
@@ -10,5 +11,6 @@ export const routes: Routes = [
   { path: 'basics',          component: HomeComponent },
   { path: 'sanitize',        component: SensitiveDataComponent },
   { path: 'outbox',          component: ProductsComponent },
+  { path: 'events',          component: BookSearchEventsComponent },
   { path: 'ai-collaboration', children: showcaseRoutes },
 ];
