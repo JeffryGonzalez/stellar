@@ -18,7 +18,7 @@
     "@angular/core": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@hypertheory-labs/sanitize": "^0.0.1",
-    "@ngrx/signals": "21.0.0"
+    "@ngrx/signals": "^21.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
