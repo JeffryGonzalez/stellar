@@ -124,6 +124,13 @@ import { RouterLink } from '@angular/router';
             <p class="text-xs text-base-content/50">Guided scenarios</p>
           </div>
         </a>
+        <a routerLink="/lifecycle"
+           class="card bg-base-200 hover:bg-base-300 transition-colors cursor-pointer">
+          <div class="card-body py-3 px-4">
+            <p class="font-medium text-sm">Lifecycle</p>
+            <p class="text-xs text-base-content/50">Mount, unmount, re-mount</p>
+          </div>
+        </a>
       </div>
 
     </div>
