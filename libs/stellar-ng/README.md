@@ -99,8 +99,19 @@ window.__stellarDevtools.record.stopAndDownload()
 | `@angular/core` | ^21.2.0 |
 | `@angular/common` | ^21.2.0 |
 | `@angular/platform-browser` | ^21.2.0 |
-| `@ngrx/signals` | 21.0.0 |
+| `@ngrx/signals` | ^21.0.0 |
 | `@hypertheory-labs/sanitize` | ^0.0.1 |
+
+---
+
+## Stability
+
+Pre-1.0. The shape of `window.__stellarDevtools` and the data passed to AI
+consumers (`describe()`, `RecordingSession`, etc.) may change between minor
+versions until a 1.0 release commits to a stable contract. AI assistants
+consuming this surface should re-read `describe()` rather than cache
+assumptions. Breaking changes within a minor are documented in TDRs under
+[explainers](https://stellar.hypertheory-labs.dev).
 
 ---
 

@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { HttpEvent, RegisterOptions, StoreEntry } from './models';
+import { HttpEvent, RegisterOptions, StoreEntry, StoreInstance, StoreMetadata } from './models';
 import { StellarRegistry } from './stellar-registry';
 import { Events } from '@ngrx/signals/events';
 
@@ -60,20 +60,24 @@ export class StellarRegistryService {
       });
   }
 
-  register(name: string, options: RegisterOptions = {}): void {
-    this.core.register(name, options);
+  register(name: string, options: RegisterOptions = {}): string {
+    return this.core.register(name, options);
   }
 
-  registerRawReader(name: string, reader: () => Record<string, unknown>): void {
-    this.core.registerRawReader(name, reader);
+  unregister(id: string): void {
+    this.core.unregister(id);
+  }
+
+  registerRawReader(id: string, reader: () => Record<string, unknown>): void {
+    this.core.registerRawReader(id, reader);
   }
 
   getRawState(name: string): Record<string, unknown> | null {
     return this.core.getRawState(name);
   }
 
-  recordState(name: string, state: Record<string, unknown>): void {
-    this.core.recordState(name, state, {
+  recordState(id: string, state: Record<string, unknown>): void {
+    this.core.recordState(id, state, {
       route: this.router?.url ?? null,
       trigger: this.recentTrigger(),
       httpEventId: this.recentHttpEventId(),
@@ -121,15 +125,23 @@ export class StellarRegistryService {
     return undefined;
   }
 
-  unregister(name: string): void {
-    this.core.unregister(name);
-  }
-
   getStore(name: string): StoreEntry | undefined {
     return this.core.getStore(name);
   }
 
   getAllStores(): StoreEntry[] {
     return this.core.getAllStores();
+  }
+
+  getInstance(id: string): StoreInstance | undefined {
+    return this.core.getInstance(id);
+  }
+
+  getInstancesByName(name: string): StoreInstance[] {
+    return this.core.getInstancesByName(name);
+  }
+
+  getAllMetadata(): StoreMetadata[] {
+    return this.core.getAllMetadata();
   }
 }

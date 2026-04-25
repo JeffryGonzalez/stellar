@@ -11,25 +11,33 @@ interface StellarDevtoolsOptions extends RegisterOptions {
 
 export function withStellarDevtools(name: string, options: StellarDevtoolsOptions = {}) {
   return signalStoreFeature(
-    withHooks({
-      onInit(store) {
-        const registry = inject(StellarRegistryService);
-        registry.register(name, options);
-        registry.registerRawReader(name, () => getState(store) as Record<string, unknown>);
+    withHooks((store) => {
+      // Capture both the registry reference and the instance id at construction
+      // time. The injection context is alive here; it is *not* alive in
+      // onDestroy when Angular tears down the owning injector (router-scoped
+      // stores under withExperimentalAutoCleanupInjectors, component providers,
+      // etc.). Reaching for inject() in onDestroy throws NG0203.
+      const registry = inject(StellarRegistryService);
+      let instanceId: string | null = null;
 
-        effect(() => {
-          const raw = getState(store) as Record<string, unknown>;
-          const merged = { ...autoRedactConfig(raw), ...options.sanitize };
-          const state = Object.keys(merged).length > 0
-            ? applySanitized(raw, merged as any)
-            : raw;
-          registry.recordState(name, state);
-        });
-      },
-      onDestroy() {
-        const registry = inject(StellarRegistryService);
-        registry.unregister(name);
-      },
+      return {
+        onInit() {
+          instanceId = registry.register(name, options);
+          registry.registerRawReader(instanceId, () => getState(store) as Record<string, unknown>);
+
+          effect(() => {
+            const raw = getState(store) as Record<string, unknown>;
+            const merged = { ...autoRedactConfig(raw), ...options.sanitize };
+            const state = Object.keys(merged).length > 0
+              ? applySanitized(raw, merged as any)
+              : raw;
+            if (instanceId) registry.recordState(instanceId, state);
+          });
+        },
+        onDestroy() {
+          if (instanceId) registry.unregister(instanceId);
+        },
+      };
     }),
   );
 }

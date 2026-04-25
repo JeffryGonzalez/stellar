@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpEvent, RecordingEdge, RecordingNode, RecordingSession, StateSnapshot, StoreEntry } from './models';
+import { HttpEvent, RecordingEdge, RecordingNode, RecordingSession, StateSnapshot, StoreInstance } from './models';
 import { StellarRegistryService } from './stellar-registry.service';
 
 // Format description embedded in every RecordingSession for LLM consumers
@@ -10,7 +10,10 @@ const RECORDING_FORMAT =
   'state-snapshot (store state change, delta:{field:[before,after]}, arrays summarized to length). ' +
   'Edge labels: initiated (user action→request), resolved (request→response), ' +
   'produced (response→state-snapshot), caused (user action→optimistic state-snapshot). ' +
-  't=ms from recording start. storeContext maps store names to their purpose.';
+  't=ms from recording start. storeContext maps store names to their purpose. ' +
+  'A store name may have multiple instances over a session (route mount/unmount, component scopes); ' +
+  'state-snapshot nodes carry instanceId when the same name has more than one instance in this recording, ' +
+  'so re-mounts and their separate state histories remain distinguishable.';
 
 // Compact summary of a value for recording delta — arrays become their length
 function summarize(v: unknown): unknown {
@@ -32,8 +35,8 @@ function snapshotDelta(
   return Object.keys(delta).length > 0 ? delta : undefined;
 }
 
-function snapshotIndexIn(store: StoreEntry, snap: StateSnapshot): number {
-  return store.history.indexOf(snap);
+function snapshotIndexIn(instance: StoreInstance, snap: StateSnapshot): number {
+  return instance.history.indexOf(snap);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -73,7 +76,7 @@ export class RecordingService {
   }
 
   private buildSession(name: string, start: number, end: number): RecordingSession {
-    const stores = this.registry.getAllStores();
+    const allMetadata = this.registry.getAllMetadata();
     const httpEvents = this.registry.getHttpEvents()
       .filter(e => e.timestamp >= start && e.timestamp <= end);
 
@@ -151,33 +154,46 @@ export class RecordingService {
     }
 
     // ── State-snapshot nodes ──────────────────────────────────────────────────
+    // Walk every instance of every store name. A name with multiple instances
+    // in the recording window contributes snapshots from each — re-mounts are
+    // their own causal history, not a continuation of the prior instance.
     const allSnaps: Array<{
-      store: StoreEntry;
+      instance: StoreInstance;
       snap: StateSnapshot;
       prev: StateSnapshot | null;
+      multiInstance: boolean;
     }> = [];
 
-    for (const store of stores) {
-      const inWindow = store.history.filter(
-        s => s.timestamp >= start && s.timestamp <= end,
+    for (const meta of allMetadata) {
+      const instances = this.registry.getInstancesByName(meta.name);
+      const instancesWithSnaps = instances.filter(inst =>
+        inst.history.some(s => s.timestamp >= start && s.timestamp <= end),
       );
-      for (let i = 0; i < inWindow.length; i++) {
-        const globalIdx = store.history.indexOf(inWindow[i]);
-        const prev = globalIdx > 0 ? store.history[globalIdx - 1] : null;
-        allSnaps.push({ store, snap: inWindow[i], prev });
+      const multiInstance = instancesWithSnaps.length > 1;
+
+      for (const instance of instances) {
+        const inWindow = instance.history.filter(
+          s => s.timestamp >= start && s.timestamp <= end,
+        );
+        for (const snap of inWindow) {
+          const idx = instance.history.indexOf(snap);
+          const prev = idx > 0 ? instance.history[idx - 1] : null;
+          allSnaps.push({ instance, snap, prev, multiInstance });
+        }
       }
     }
     allSnaps.sort((a, b) => a.snap.timestamp - b.snap.timestamp);
 
-    for (const { store, snap, prev } of allSnaps) {
+    for (const { instance, snap, prev, multiInstance } of allSnaps) {
       const id = newId();
       const delta = prev ? snapshotDelta(prev.state, snap.state) : undefined;
       nodes.push({
         id,
         type: 'state-snapshot',
         t: snap.timestamp - start,
-        store: store.name,
-        snapshotIndex: snapshotIndexIn(store, snap),
+        store: instance.name,
+        snapshotIndex: snapshotIndexIn(instance, snap),
+        ...(multiInstance ? { instanceId: instance.id } : {}),
         ...(delta ? { delta } : {}),
       });
 
@@ -193,12 +209,15 @@ export class RecordingService {
     // Sort all nodes by t so the output reads chronologically
     nodes.sort((a, b) => a.t - b.t);
 
-    // Store context: descriptions for stores that actually appear in this recording
-    const storeNamesInRecording = new Set(allSnaps.map(s => s.store.name));
+    // Store context: descriptions for store names that have any instance
+    // appearing in this recording — even names whose instances were all
+    // destroyed before recording started but have snapshots in the window
+    // (the snapshots-in-window check above handles this naturally).
+    const storeNamesInRecording = new Set(allSnaps.map(s => s.instance.name));
     const storeContext: Record<string, string> = {};
-    for (const store of stores) {
-      if (storeNamesInRecording.has(store.name) && store.description) {
-        storeContext[store.name] = store.description;
+    for (const meta of allMetadata) {
+      if (storeNamesInRecording.has(meta.name) && meta.description) {
+        storeContext[meta.name] = meta.description;
       }
     }
 

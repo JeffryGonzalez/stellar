@@ -35,9 +35,9 @@ test.describe('describe() API', () => {
     expect(typeof result.caveat).toBe('string');
   });
 
-  test('version is "1.0"', async ({ page }) => {
+  test('version is "1.1"', async ({ page }) => {
     const { version } = await page.evaluate(() => (window as any).__stellarDevtools.describe());
-    expect(version).toBe('1.0');
+    expect(version).toBe('1.1');
   });
 
   test('stores list includes all registered stores', async ({ page }) => {
@@ -60,8 +60,19 @@ test.describe('describe() API', () => {
       expect(typeof store.snapshotCount).toBe('number');
       expect(store.snapshotCount).toBeGreaterThan(0);
       expect(typeof store.registeredAt).toBe('number');
+      // destroyedAt is number or null (null when at least one instance is active)
+      expect(store.destroyedAt === null || typeof store.destroyedAt === 'number').toBe(true);
       // sourceHint is string or null
       expect(store.sourceHint === null || typeof store.sourceHint === 'string').toBe(true);
+      // instances is a non-empty array
+      expect(Array.isArray(store.instances)).toBe(true);
+      expect(store.instances.length).toBeGreaterThan(0);
+      for (const inst of store.instances) {
+        expect(typeof inst.id).toBe('string');
+        expect(typeof inst.registeredAt).toBe('number');
+        expect(inst.destroyedAt === null || typeof inst.destroyedAt === 'number').toBe(true);
+        expect(typeof inst.snapshotCount).toBe('number');
+      }
     }
   });
 

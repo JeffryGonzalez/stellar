@@ -13,4 +13,14 @@ export const routes: Routes = [
   { path: 'outbox',          component: ProductsComponent },
   { path: 'events',          component: BookSearchEventsComponent },
   { path: 'ai-collaboration', children: showcaseRoutes },
+  // Test fixture for store lifecycle (route-scoped store; mount/unmount/remount).
+  // Not linked from the UI; consumed by apps/demo-ng/e2e/lifecycle.spec.ts.
+  {
+    path: '__test/lifecycle',
+    loadComponent: () => import('./lifecycle-test.component').then(m => m.LifecycleTestComponent),
+  },
+  {
+    path: '__test/empty',
+    loadComponent: () => import('./lifecycle-test.component').then(m => m.EmptyTestComponent),
+  },
 ];

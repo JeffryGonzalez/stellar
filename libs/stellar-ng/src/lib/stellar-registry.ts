@@ -1,4 +1,12 @@
-import { RegisterOptions, ShapeMap, ShapeValue, StateSnapshot, StoreEntry } from './models';
+import {
+  RegisterOptions,
+  ShapeMap,
+  ShapeValue,
+  StateSnapshot,
+  StoreEntry,
+  StoreInstance,
+  StoreMetadata,
+} from './models';
 
 // Angular substitutes `ngDevMode` at build time: a literal `false` in production
 // (enabling dead-code elimination of dev-only branches) and a truthy global in
@@ -18,8 +26,28 @@ function inferShape(value: unknown): ShapeValue {
   return typeof value as 'string' | 'number' | 'boolean';
 }
 
+function metadataFromOptions(name: string, options: RegisterOptions): StoreMetadata {
+  return {
+    name,
+    description: options.description,
+    sourceHint: options.sourceHint,
+    typeDefinition: options.typeDefinition,
+  };
+}
+
+function metadataConflicts(a: StoreMetadata, b: StoreMetadata): string[] {
+  const conflicts: string[] = [];
+  if (a.description !== b.description) conflicts.push('description');
+  if (a.sourceHint !== b.sourceHint) conflicts.push('sourceHint');
+  if (a.typeDefinition !== b.typeDefinition) conflicts.push('typeDefinition');
+  return conflicts;
+}
+
 export class StellarRegistry {
-  private stores = new Map<string, StoreEntry>();
+  private metadata = new Map<string, StoreMetadata>();
+  private instances = new Map<string, StoreInstance>();
+  private instancesByName = new Map<string, string[]>();
+  private counter = 0;
   private listeners = new Set<() => void>();
 
   subscribe(fn: () => void): () => void {
@@ -31,7 +59,12 @@ export class StellarRegistry {
     for (const fn of this.listeners) fn();
   }
 
-  register(name: string, options: RegisterOptions = {}): void {
+  /**
+   * Register a new instance of a store. Returns the instance id so the caller
+   * can pass it back to `unregister`, `recordState`, etc. — name-keyed
+   * unregister would be ambiguous when concurrent same-name instances exist.
+   */
+  register(name: string, options: RegisterOptions = {}): string {
     if (!options.description && (typeof ngDevMode === 'undefined' || ngDevMode)) {
       console.warn(
         `[Stellar] '${name}' has no description. Add a description to RegisterOptions ` +
@@ -39,24 +72,57 @@ export class StellarRegistry {
         `See: window.__stellarDevtools.describe()`,
       );
     }
-    this.stores.set(name, {
+
+    const incoming = metadataFromOptions(name, options);
+    const existing = this.metadata.get(name);
+    if (!existing) {
+      this.metadata.set(name, incoming);
+    } else if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      const conflicts = metadataConflicts(existing, incoming);
+      if (conflicts.length > 0) {
+        console.warn(
+          `[Stellar] '${name}' re-registered with different ${conflicts.join(', ')}. ` +
+          `The first registration's metadata is kept — the *purpose* of a store is ` +
+          `identity-level, not per-instance. If two registrations need different ` +
+          `descriptions, they're probably different stores.`,
+        );
+      }
+    }
+
+    const id = `i${++this.counter}`;
+    const instance: StoreInstance = {
+      id,
       name,
-      description: options.description,
-      sourceHint: options.sourceHint,
-      typeDefinition: options.typeDefinition,
       registeredAt: Date.now(),
       history: [],
-    });
+    };
+    this.instances.set(id, instance);
+
+    const ids = this.instancesByName.get(name) ?? [];
+    ids.push(id);
+    this.instancesByName.set(name, ids);
+
+    this.notify();
+    return id;
+  }
+
+  unregister(id: string): void {
+    const instance = this.instances.get(id);
+    if (!instance || instance.destroyedAt !== undefined) return;
+    instance.destroyedAt = Date.now();
+    // Drop the rawReader — the underlying signal store is gone, calling it
+    // would either throw or return stale data.
+    instance.rawReader = undefined;
     this.notify();
   }
 
   recordState(
-    name: string,
+    id: string,
     state: Record<string, unknown>,
     context: { route?: string | null; trigger?: string; httpEventId?: string } = {},
   ): void {
-    const entry = this.stores.get(name);
-    if (!entry) return;
+    const instance = this.instances.get(id);
+    if (!instance || instance.destroyedAt !== undefined) return;
 
     const snapshot: StateSnapshot = {
       timestamp: Date.now(),
@@ -67,32 +133,84 @@ export class StellarRegistry {
       httpEventId: context.httpEventId,
     };
 
-    entry.history = [...entry.history, snapshot];
+    instance.history = [...instance.history, snapshot];
     this.notify();
   }
 
-  registerRawReader(name: string, reader: () => Record<string, unknown>): void {
-    const entry = this.stores.get(name);
-    if (entry) {
-      entry.rawReader = reader;
-      this.notify();
-    }
+  registerRawReader(id: string, reader: () => Record<string, unknown>): void {
+    const instance = this.instances.get(id);
+    if (!instance || instance.destroyedAt !== undefined) return;
+    instance.rawReader = reader;
+    this.notify();
   }
 
+  /**
+   * Reads live raw state from the most recent active instance for a name.
+   * Used by the overlay's peek affordance — name-keyed because that's how
+   * the user picks a store in the UI.
+   */
   getRawState(name: string): Record<string, unknown> | null {
-    return this.stores.get(name)?.rawReader?.() ?? null;
+    const instance = this.latestActiveInstance(name);
+    return instance?.rawReader?.() ?? null;
   }
 
-  unregister(name: string): void {
-    this.stores.delete(name);
-    this.notify();
-  }
+  // ── Projections (name-keyed, what consumers see) ─────────────────────────
 
+  /**
+   * Returns the projection for a store name: the most recent instance's
+   * data surfaced at the top level (back-compat) plus all instances under
+   * `instances[]`. Falls back to the most recent destroyed instance if no
+   * active one exists, so AI consumers asking about a known name get a
+   * useful answer instead of `undefined`.
+   */
   getStore(name: string): StoreEntry | undefined {
-    return this.stores.get(name);
+    const meta = this.metadata.get(name);
+    const ids = this.instancesByName.get(name);
+    if (!meta || !ids || ids.length === 0) return undefined;
+
+    const instances = ids.map(id => this.instances.get(id)!);
+    const latestActive = instances.slice().reverse().find(i => i.destroyedAt === undefined);
+    const latest = latestActive ?? instances[instances.length - 1];
+
+    return {
+      name: meta.name,
+      description: meta.description,
+      sourceHint: meta.sourceHint,
+      typeDefinition: meta.typeDefinition,
+      registeredAt: latest.registeredAt,
+      destroyedAt: latestActive ? undefined : latest.destroyedAt,
+      history: latest.history,
+      rawReader: latest.rawReader,
+      instances,
+    };
   }
 
   getAllStores(): StoreEntry[] {
-    return Array.from(this.stores.values());
+    const entries: StoreEntry[] = [];
+    for (const name of this.metadata.keys()) {
+      const entry = this.getStore(name);
+      if (entry) entries.push(entry);
+    }
+    return entries;
+  }
+
+  // ── Instance-level access (used by recording, multi-instance API) ────────
+
+  getInstance(id: string): StoreInstance | undefined {
+    return this.instances.get(id);
+  }
+
+  getInstancesByName(name: string): StoreInstance[] {
+    const ids = this.instancesByName.get(name) ?? [];
+    return ids.map(id => this.instances.get(id)!).filter(Boolean);
+  }
+
+  getAllMetadata(): StoreMetadata[] {
+    return Array.from(this.metadata.values());
+  }
+
+  private latestActiveInstance(name: string): StoreInstance | undefined {
+    const instances = this.getInstancesByName(name);
+    return instances.slice().reverse().find(i => i.destroyedAt === undefined);
   }
 }

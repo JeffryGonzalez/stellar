@@ -44,15 +44,50 @@ export interface StateSnapshot {
   httpEventId?: string;  // id of the HttpEvent whose response caused this snapshot
 }
 
+/**
+ * Identity-level information about a store. Stored once per name. Stays stable
+ * across re-mounts of the same store — the *purpose* of `BooksStore` shouldn't
+ * change just because you navigated away and came back.
+ */
+export interface StoreMetadata {
+  name: string;
+  description?: string;
+  sourceHint?: string;
+  typeDefinition?: string;
+}
+
+/**
+ * One lifecycle of a registered store. A name can produce many instances over
+ * a session — each route mount, each component-providers scope, each manual
+ * provideExisting cycle creates a new instance with its own history.
+ */
+export interface StoreInstance {
+  id: string;
+  name: string;
+  registeredAt: number;
+  destroyedAt?: number;
+  history: StateSnapshot[];
+  /** Overlay-only. Reads live raw state directly from the signal store. Cleared when the instance is destroyed. Never serialized, never exported. */
+  rawReader?: () => Record<string, unknown>;
+}
+
+/**
+ * Projection over a store's metadata + most recent instance. This is what
+ * overlay/recording/window.__stellarDevtools consumers see — name-keyed,
+ * with the latest instance's history surfaced at the top level for back-compat
+ * and the full per-instance breakdown available via `instances[]`.
+ */
 export interface StoreEntry {
   name: string;
   description?: string;
   sourceHint?: string;
   typeDefinition?: string;
-  registeredAt: number;  // Date.now() at registration — exposes lazy-loading to AI consumers
-  history: StateSnapshot[];
-  /** Overlay-only. Reads live raw state directly from the signal store. Never serialized, never exported. */
+  registeredAt: number;       // most recent instance's registration time
+  destroyedAt?: number;       // set iff no instance is currently active
+  history: StateSnapshot[];   // most recent instance's history
+  /** Overlay-only. Reads live raw state from the most recent active instance. Never serialized, never exported. */
   rawReader?: () => Record<string, unknown>;
+  instances: StoreInstance[]; // full lifecycle for the name, oldest first
 }
 
 // ── Recording session ─────────────────────────────────────────────────────────
@@ -75,7 +110,8 @@ export interface RecordingNode {
   duration?: number;      // http-response
   error?: string;         // http-response (network failure)
   store?: string;         // state-snapshot
-  snapshotIndex?: number; // state-snapshot
+  instanceId?: string;    // state-snapshot — present when the store name has multiple instances in this recording
+  snapshotIndex?: number; // state-snapshot — index within the instance's history, not the name's combined history
   delta?: Record<string, [unknown, unknown]>; // state-snapshot: { key: [before, after] }
 }
 

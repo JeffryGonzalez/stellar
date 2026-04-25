@@ -1,6 +1,6 @@
 {
   "name": "@hypertheory-labs/stellar-ng-devtools",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "In-browser developer overlay for NgRx Signal Store — state inspection, diffs, HTTP monitoring, and AI-accessible snapshots.",
   "keywords": ["ngrx", "signals", "angular", "devtools", "state", "debugging", "ai"],
   "license": "MIT",

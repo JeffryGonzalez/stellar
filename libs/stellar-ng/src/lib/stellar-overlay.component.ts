@@ -368,6 +368,25 @@ function highlightValue(value: unknown, indent: number): string {
 
     .stellar-store-chip:hover { background: #313244; }
 
+    .stellar-store-chip.stellar-destroyed {
+      color: #6c7086;
+      border-color: #313244;
+      font-style: italic;
+    }
+    .stellar-store-chip.stellar-destroyed:hover { background: #181825; }
+
+    .stellar-instance-count {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: 10px;
+      background: #313244;
+      color: #a6adc8;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 16px;
+    }
+
     .stellar-no-stores {
       color: #6c7086;
       font-size: 11px;
@@ -768,8 +787,15 @@ function highlightValue(value: unknown, indent: number): string {
           <span class="stellar-no-stores">No stores registered</span>
         }
         @for (store of stores(); track store.name) {
-          <button class="stellar-store-chip" (click)="selectStore(store.name)">
+          <button
+            class="stellar-store-chip"
+            [class.stellar-destroyed]="store.destroyedAt !== undefined"
+            [title]="store.destroyedAt !== undefined ? 'Destroyed — last instance unmounted' : ''"
+            (click)="selectStore(store.name)">
             {{ store.name }}
+            @if (store.instances.length > 1) {
+              <span class="stellar-instance-count" title="instances of this store registered in this session">{{ store.instances.length }}</span>
+            }
           </button>
         }
         @if (httpEvents().length > 0) {
