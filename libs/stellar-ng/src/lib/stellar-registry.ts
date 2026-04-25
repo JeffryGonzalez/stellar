@@ -1,5 +1,11 @@
 import { RegisterOptions, ShapeMap, ShapeValue, StateSnapshot, StoreEntry } from './models';
 
+// Angular substitutes `ngDevMode` at build time: a literal `false` in production
+// (enabling dead-code elimination of dev-only branches) and a truthy global in
+// dev. When neither has happened yet — e.g. early in app bootstrap or in test
+// environments — `typeof` returns 'undefined' and we fail open to dev mode.
+declare const ngDevMode: boolean | undefined;
+
 function inferShape(value: unknown): ShapeValue {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
@@ -26,7 +32,7 @@ export class StellarRegistry {
   }
 
   register(name: string, options: RegisterOptions = {}): void {
-    if (!options.description && typeof ngDevMode !== 'undefined' && ngDevMode) {
+    if (!options.description && (typeof ngDevMode === 'undefined' || ngDevMode)) {
       console.warn(
         `[Stellar] '${name}' has no description. Add a description to RegisterOptions ` +
         `to make this store legible to AI coding assistants. ` +
